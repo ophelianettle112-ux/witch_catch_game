@@ -1,0 +1,2362 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>✨まほうのキャッチゲーム✨</title>
+<style>
+  :root{
+    --pink:#ff9ecf;
+    --pink-deep:#ff6fb5;
+    --purple:#c9a6ff;
+    --purple-deep:#a273f2;
+    --blue:#9ee8ff;
+    --blue-deep:#5fd0ff;
+    --yellow:#fff29e;
+    --bg1:#f6d9ff;
+    --bg2:#d9c2ff;
+    --bg3:#b9a4ff;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; user-select:none; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    font-family:'Segoe UI Rounded','Hiragino Maru Gothic ProN','Rounded Mplus 1c','Comic Sans MS',sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2) 50%,var(--bg3));
+    overflow:hidden;
+  }
+  body{
+    display:flex; align-items:center; justify-content:center; min-height:100vh;
+  }
+
+  /* 背景のキラキラ */
+  #sparkle-bg{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  .sparkle{
+    position:absolute; font-size:20px; opacity:.7;
+    animation:twinkle 3s ease-in-out infinite;
+  }
+  @keyframes twinkle{
+    0%,100%{ transform:scale(0.6) rotate(0deg); opacity:.2; }
+    50%{ transform:scale(1.2) rotate(20deg); opacity:.9; }
+  }
+
+  #app{
+    position:relative; z-index:1;
+    width:min(760px,96vw);
+  }
+  @media (min-width:700px){
+    #app{ width:min(900px,94vw); }
+  }
+
+  .screen{
+    background:linear-gradient(160deg,#ffffffcc,#fff0fbcc);
+    border-radius:32px;
+    padding:14px;
+    box-shadow:0 10px 30px rgba(150,90,220,.35), inset 0 0 0 4px #ffffffaa;
+    backdrop-filter:blur(2px);
+    transition:opacity .6s ease, transform .6s ease;
+  }
+  .hidden{ display:none !important; }
+  .fade-out{ opacity:0; transform:scale(.9); pointer-events:none; }
+  .fade-in{ animation:fadeIn .6s ease both; }
+  @keyframes fadeIn{ from{opacity:0; transform:scale(.9);} to{opacity:1; transform:scale(1);} }
+
+
+  /* ==== タイトル画面・サウンド ==== */
+  #title-screen{
+    position:relative; min-height:min(86vh,680px);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; overflow:hidden; padding:48px 20px 34px;
+  }
+  .title-moon{
+    position:absolute; width:280px; height:280px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fff,#ffe9fa 48%,#d7c2ff 72%,transparent 74%);
+    opacity:.72; filter:drop-shadow(0 0 24px rgba(255,255,255,.9));
+    top:55px; left:50%; transform:translateX(-50%);
+    pointer-events:none;
+  }
+  .title-content{
+    position:relative; z-index:2; width:min(100%,520px);
+    padding-top:58px;
+  }
+  #title-screen h1{
+    margin:0 0 12px; font-size:clamp(29px,7vw,46px); line-height:1.25;
+    background:linear-gradient(90deg,var(--pink-deep),var(--purple-deep),var(--blue-deep));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 4px 12px rgba(170,100,210,.15);
+  }
+  .title-witch{
+    display:inline-block; font-size:clamp(72px,19vw,118px); margin:8px 0 4px;
+    filter:drop-shadow(0 10px 12px rgba(80,40,120,.3));
+    animation:titleFloat 2s ease-in-out infinite;
+  }
+  @keyframes titleFloat{ 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-9px) rotate(2deg)} }
+  .title-lead{ margin:5px 0 18px; color:#7949b5; font-size:clamp(16px,4vw,21px); font-weight:900; line-height:1.55; }
+  .title-tips{
+    margin:0 auto 22px; width:min(100%,420px); display:grid; gap:8px;
+  }
+  .title-tip{
+    background:rgba(255,255,255,.72); border-radius:16px; padding:8px 11px;
+    color:#94549f; font-size:13px; font-weight:800; line-height:1.35;
+    box-shadow:0 3px 8px rgba(140,80,180,.14);
+  }
+  #best3Panel{
+    position:absolute; top:12px; left:50%; z-index:6;
+    transform:translateX(-50%);
+    width:150px; margin:0; padding:5px 8px;
+    border-radius:14px; background:rgba(255,255,255,.78);
+    box-shadow:0 3px 8px rgba(140,80,180,.14); color:#7a4bbf;
+    text-align:center;
+  }
+  #best3Title{ font-size:11px; font-weight:900; margin-bottom:1px; white-space:nowrap; }
+  #best3List{ display:flex; justify-content:center; gap:5px; flex-wrap:nowrap; font-size:11px; font-weight:900; white-space:nowrap; }
+  .best3-empty{ opacity:.65; font-weight:800; }
+  @media (max-width:430px){
+    #best3Panel{ top:12px; width:132px; padding:5px 6px; }
+    #best3Title,#best3List{ font-size:9.5px; }
+  }
+  @media (max-width:350px){
+    #best3Panel{ width:120px; }
+    #best3Title,#best3List{ font-size:9px; gap:3px; }
+  }
+  #highScoreNotice{
+    margin:0 auto 7px; color:#ff5fa8; font-size:15px; font-weight:900;
+    text-shadow:0 1px 2px #fff;
+  }
+  #startBtn{
+    border:none; cursor:pointer; min-width:220px; min-height:64px;
+    padding:12px 34px; border-radius:34px; color:#fff;
+    font-size:21px; font-weight:900; letter-spacing:1px;
+    background:linear-gradient(135deg,var(--pink-deep),var(--purple-deep));
+    box-shadow:0 7px 0 #7748b0,0 11px 20px rgba(90,40,140,.28);
+    transition:transform .08s,box-shadow .08s; touch-action:manipulation;
+  }
+  #startBtn:active{ transform:translateY(6px) scale(.98); box-shadow:0 1px 0 #7748b0; }
+  .sound-btn{
+    position:absolute; top:10px; left:22px; z-index:70;
+    width:50px; height:50px; border-radius:50%; border:none;
+    background:linear-gradient(135deg,#dff8ff,var(--blue),var(--purple));
+    font-size:22px; cursor:pointer;
+    box-shadow:0 5px 0 #7b9ed0,0 7px 10px rgba(0,0,0,.18);
+    transition:transform .08s,box-shadow .08s; touch-action:manipulation;
+  }
+  .sound-btn:active{ transform:translateY(4px); box-shadow:0 1px 0 #7b9ed0; }
+  #countdownOverlay{
+    position:absolute; inset:0; z-index:90; display:flex; align-items:center; justify-content:center;
+    background:rgba(180,135,240,.16); backdrop-filter:blur(1px);
+    pointer-events:none;
+  }
+  #countdownText{
+    color:#fff; font-size:clamp(72px,20vw,130px); font-weight:900;
+    text-shadow:0 5px 15px rgba(75,30,120,.5),0 0 22px #ffb6ec;
+  }
+  #countdownText.pop{ animation:countdownPop .72s ease both; }
+  @keyframes countdownPop{
+    0%{opacity:0;transform:scale(.45)}
+    28%{opacity:1;transform:scale(1.15)}
+    76%{opacity:1;transform:scale(1)}
+    100%{opacity:0;transform:scale(.82)}
+  }
+  @media (max-width:430px){
+    .sound-btn{left:16px}
+    #title-screen{min-height:92vh;padding-top:54px}
+    .title-content{padding-top:62px}
+    .title-tip{font-size:12px}
+  }
+  @media (max-height:720px){
+    #title-screen{justify-content:flex-start;padding-top:54px;padding-bottom:20px}
+    .title-content{padding-top:58px}
+    #title-screen h1{font-size:clamp(27px,6.4vw,40px);margin-bottom:6px}
+    .title-witch{font-size:clamp(66px,17vw,100px);margin-top:2px}
+    .title-lead{margin-bottom:12px}
+    .title-tips{margin-bottom:14px;gap:6px}
+  }
+
+  /* ヘッダー */
+  #header{
+    position:relative;
+    display:flex; align-items:center;
+    min-height:64px; padding:6px 78px 10px 14px;
+  }
+  #header-right{
+    position:absolute; left:50%; top:6px;
+    transform:translateX(-50%);
+    display:flex; align-items:center; justify-content:center;
+    z-index:5;
+  }
+  .hud-pill{
+    background:linear-gradient(135deg,var(--pink),var(--purple));
+    color:#fff; font-weight:800; padding:8px 16px; border-radius:20px;
+    box-shadow:0 4px 0 #b56fd9, 0 6px 10px rgba(0,0,0,.15);
+    font-size:15px; letter-spacing:1px;
+    text-shadow:0 1px 2px rgba(0,0,0,.25);
+  }
+  #timer{
+    min-width:126px; text-align:center;
+    padding:10px 20px; font-size:21px;
+    letter-spacing:1.5px; white-space:nowrap;
+  }
+  @media (max-width:430px){
+    #header{ min-height:62px; padding-left:10px; padding-right:68px; }
+    #scoreBox{ padding:7px 10px; font-size:13px; }
+    #timer{ min-width:108px; padding:9px 13px; font-size:19px; }
+    .collection-btn{ right:16px; }
+  }
+  @media (max-width:350px){
+    #scoreBox{ font-size:12px; padding:7px 8px; }
+    #timer{ min-width:96px; font-size:17px; padding:9px 10px; }
+  }
+  #timer.warn{ background:linear-gradient(135deg,#ff8a8a,#ff5f8f); animation:pulseWarn .5s infinite; }
+  @keyframes pulseWarn{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.08);} }
+
+  /* ゲームエリア */
+  #game-area{
+    position:relative;
+    width:100%;
+    height:min(74vh,700px);
+    border-radius:24px;
+    overflow:hidden;
+    background:
+      radial-gradient(circle at 20% 10%, #ffffff77, transparent 40%),
+      linear-gradient(180deg,#e8d5ff,#c9b3ff 60%, #ad9cff);
+    box-shadow:inset 0 0 0 3px #ffffffaa, inset 0 -10px 30px rgba(150,80,220,.25);
+  }
+  @media (min-width:700px){
+    #game-area{ height:min(78vh,820px); }
+  }
+  .cloud{
+    position:absolute; background:#ffffffb0; border-radius:50%;
+    filter:blur(1px);
+  }
+
+  #player{
+    position:absolute;
+    bottom:10px;
+    width:82px; height:82px;
+    display:flex; align-items:center; justify-content:center;
+    transform:translateX(-50%);
+    transition:transform .05s linear;
+    z-index:10;
+  }
+  @media (min-width:700px){ #player{ width:96px; height:96px; } }
+
+  .player-aura{
+    position:absolute; inset:-8px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(255,190,235,.95), rgba(210,170,255,.55) 55%, transparent 76%);
+    filter:blur(2px);
+    animation:auraPulse 1.8s ease-in-out infinite;
+    z-index:0;
+  }
+  @keyframes auraPulse{
+    0%,100%{ transform:scale(1); opacity:.8; }
+    50%{ transform:scale(1.18); opacity:1; }
+  }
+  .player-sparkles{
+    position:absolute; inset:0; z-index:1;
+    animation:orbitSpin 5s linear infinite;
+    pointer-events:none;
+  }
+  @keyframes orbitSpin{ from{ transform:rotate(0deg);} to{ transform:rotate(360deg);} }
+  .spk{ position:absolute; font-size:15px; filter:drop-shadow(0 0 3px #fff); }
+  .spk1{ top:-6px; left:50%; transform:translateX(-50%); }
+  .spk2{ bottom:10px; left:-8px; }
+  .spk3{ bottom:10px; right:-8px; }
+
+  .player-emoji{
+    position:relative; z-index:2;
+    font-size:54px;
+    filter:drop-shadow(0 6px 6px rgba(80,40,120,.4));
+    animation:idleBounce 1.5s ease-in-out infinite;
+  }
+  @media (min-width:700px){ .player-emoji{ font-size:64px; } }
+  @keyframes idleBounce{
+    0%,100%{ transform:translateY(0); }
+    50%{ transform:translateY(-5px); }
+  }
+
+  #player.move-left{ transform:translateX(-50%) rotate(-10deg) scaleX(-1); }
+  #player.move-right{ transform:translateX(-50%) rotate(10deg); }
+
+  .item{
+    position:absolute;
+    font-size:34px;
+    line-height:1;
+    display:flex; align-items:center; justify-content:center;
+    width:40px; height:40px;
+    filter:drop-shadow(0 3px 4px rgba(60,20,90,.35));
+    pointer-events:none;
+  }
+  .spike-item{
+    width:42px; height:42px;
+    background:radial-gradient(circle at 35% 30%, #7a2fb0, #2a0845 75%);
+    clip-path:polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    position:relative;
+    animation:spikeWobble 0.9s ease-in-out infinite, spikeDanger 0.8s ease-in-out infinite;
+  }
+  /* 怒った目 */
+  .spike-item::before{
+    content:'';
+    position:absolute;
+    top:36%; left:29%;
+    width:5px; height:7px;
+    background:#fff;
+    border-radius:50%;
+    box-shadow:15px 0 0 #fff, 0 0 3px rgba(0,0,0,.6), 15px 0 3px rgba(0,0,0,.6);
+  }
+  /* への字の怒った口 */
+  .spike-item::after{
+    content:'';
+    position:absolute;
+    bottom:26%; left:50%;
+    transform:translateX(-50%);
+    width:14px; height:7px;
+    border:2px solid #fff;
+    border-top:none;
+    border-radius:0 0 10px 10px;
+  }
+  @keyframes spikeWobble{
+    0%,100%{ transform:rotate(-8deg) scale(1); }
+    50%{ transform:rotate(8deg) scale(1.08); }
+  }
+  @keyframes spikeDanger{
+    0%,100%{ box-shadow:0 0 6px 2px rgba(255,30,70,.65), 0 0 0 rgba(255,30,70,0); }
+    50%{ box-shadow:0 0 16px 7px rgba(255,30,70,.95), 0 0 22px 4px rgba(255,30,70,.4); }
+  }
+  .warn-badge{
+    position:absolute;
+    top:-14px; left:50%;
+    transform:translateX(-50%);
+    font-size:14px;
+    animation:badgeBounce .8s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes badgeBounce{
+    0%,100%{ transform:translateX(-50%) translateY(0); }
+    50%{ transform:translateX(-50%) translateY(-4px); }
+  }
+
+  .pop-score{
+    position:absolute; font-weight:900; font-size:20px; pointer-events:none;
+    text-shadow:0 2px 4px rgba(0,0,0,.3);
+    animation:popFloat .8s ease forwards;
+  }
+  @keyframes popFloat{
+    0%{ opacity:1; transform:translateY(0) scale(0.8);}
+    30%{ transform:translateY(-10px) scale(1.2);}
+    100%{ opacity:0; transform:translateY(-50px) scale(1);}
+  }
+
+
+  /* ==== にじいろキャンディ＆ボーナスタイム ==== */
+  .rainbow-candy-item{
+    width:52px; height:52px; font-size:31px; overflow:visible;
+    filter:drop-shadow(0 0 7px rgba(255,255,255,.95)) drop-shadow(0 0 12px rgba(255,100,210,.75));
+  }
+  .rainbow-candy-item .candy-core{
+    position:relative; z-index:3;
+    animation:rainbowCandyPulse .9s ease-in-out infinite;
+  }
+  .rainbow-candy-item::before{
+    content:''; position:absolute; inset:-4px; border-radius:50%;
+    background:conic-gradient(#ff7eb9,#ffe36e,#8dffb5,#76ddff,#a98cff,#ff7eb9);
+    opacity:.78; filter:blur(1px);
+    animation:rainbowRingSpin 1.4s linear infinite;
+  }
+  .rainbow-candy-item::after{
+    content:'✦'; position:absolute; right:-8px; top:-10px;
+    color:#fff; font-size:16px; text-shadow:-30px 28px 0 #fff6a6, -5px 45px 0 #aef5ff;
+    animation:rainbowTwinkle .8s ease-in-out infinite alternate;
+    z-index:4;
+  }
+  @keyframes rainbowRingSpin{ to{ transform:rotate(360deg); } }
+  @keyframes rainbowCandyPulse{
+    0%,100%{ transform:scale(1) rotate(-5deg); }
+    50%{ transform:scale(1.14) rotate(5deg); }
+  }
+  @keyframes rainbowTwinkle{ from{opacity:.45;transform:scale(.75);} to{opacity:1;transform:scale(1.15);} }
+
+  #bonusHud{
+    position:absolute; top:12px; left:50%; transform:translateX(-50%);
+    z-index:26; min-width:180px; text-align:center;
+    padding:8px 15px; border-radius:20px;
+    color:#fff; font-size:15px; font-weight:900; letter-spacing:.5px;
+    background:linear-gradient(90deg,#ff79ba,#ffdc65,#70e2ff,#a785ff,#ff79ba);
+    background-size:220% 100%;
+    box-shadow:0 4px 0 rgba(121,77,176,.55),0 6px 14px rgba(80,40,130,.25);
+    text-shadow:0 1px 3px rgba(70,30,100,.45);
+    animation:bonusHudFlow 1.4s linear infinite;
+    pointer-events:none;
+  }
+  @keyframes bonusHudFlow{ to{background-position:220% 0;} }
+
+  #gameAnnouncement{
+    position:absolute; left:50%; top:42%; transform:translate(-50%,-50%);
+    z-index:45; width:min(88%,440px); text-align:center;
+    color:#fff; font-size:clamp(20px,5vw,34px); font-weight:900;
+    line-height:1.25; text-shadow:0 3px 8px rgba(70,30,120,.55),0 0 10px #ff9fe7;
+    pointer-events:none;
+  }
+  #gameAnnouncement.show{ animation:announcementPop 1.15s ease both; }
+  #gameAnnouncement.small{ font-size:clamp(16px,4vw,24px); }
+  @keyframes announcementPop{
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.55);}
+    18%{opacity:1;transform:translate(-50%,-50%) scale(1.12);}
+    70%{opacity:1;transform:translate(-50%,-50%) scale(1);}
+    100%{opacity:0;transform:translate(-50%,-65%) scale(.96);}
+  }
+
+  #player.rainbow-bonus .player-aura{
+    background:conic-gradient(from 0deg,rgba(255,115,190,.82),rgba(255,229,105,.82),rgba(112,235,190,.82),rgba(100,215,255,.82),rgba(177,135,255,.82),rgba(255,115,190,.82));
+    filter:blur(4px);
+    animation:rainbowAuraSpin 1.2s linear infinite, auraPulse 1s ease-in-out infinite;
+  }
+  #player.rainbow-bonus .player-emoji{
+    filter:drop-shadow(0 0 8px #fff) drop-shadow(0 6px 7px rgba(80,40,120,.45));
+  }
+  @keyframes rainbowAuraSpin{ to{transform:rotate(360deg) scale(1.14);} }
+
+  .rainbow-trail{
+    position:absolute; z-index:8; pointer-events:none;
+    font-size:16px; font-weight:900;
+    animation:rainbowTrailFade .65s ease-out forwards;
+    filter:drop-shadow(0 0 4px #fff);
+  }
+  @keyframes rainbowTrailFade{
+    0%{opacity:.95;transform:translate(-50%,-50%) scale(1);}
+    100%{opacity:0;transform:translate(-50%,-90%) scale(.35) rotate(45deg);}
+  }
+
+  .guard-burst{
+    position:absolute; z-index:35; width:52px; height:52px;
+    pointer-events:none; transform:translate(-50%,-50%);
+  }
+  .guard-burst span{
+    position:absolute; left:50%; top:50%; font-size:17px;
+    animation:guardStarBurst .7s ease-out forwards;
+  }
+  @keyframes guardStarBurst{
+    from{opacity:1;transform:translate(-50%,-50%) rotate(var(--a)) translateX(2px) scale(1);}
+    to{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateX(42px) scale(.35);}
+  }
+
+  #rainbowGachaNote{
+    position:relative; z-index:20; margin:-5px auto 8px;
+    color:#9b4fb5; font-size:14px; font-weight:900;
+    text-shadow:0 1px 2px #fff;
+    animation:rainbowNoteIn .7s ease both;
+  }
+  @keyframes rainbowNoteIn{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
+
+  #luckyHeartNote{
+    position:relative; z-index:20; margin:-2px auto 9px;
+    width:min(92%,430px); padding:8px 12px; border-radius:16px;
+    color:#a53f78; font-size:14px; font-weight:900; line-height:1.35;
+    background:linear-gradient(135deg,#fff8fc,#ffe0f1);
+    box-shadow:0 3px 0 rgba(218,116,168,.28),0 6px 12px rgba(130,70,120,.12);
+    text-shadow:0 1px 2px #fff;
+    animation:rainbowNoteIn .7s ease both;
+  }
+
+  #capsule.rainbow-capsule{
+    background:conic-gradient(from 10deg,#ff78b9,#ffe86d,#7ef0ba,#72dfff,#a88cff,#ff78b9);
+    box-shadow:0 0 0 4px #ffffffdd,0 0 18px 7px rgba(255,137,224,.7),0 8px 16px rgba(90,40,140,.42);
+  }
+  #capsule.rainbow-capsule::before,
+  #capsule.rainbow-capsule::after{
+    position:absolute; color:#fff; font-size:15px;
+    filter:drop-shadow(0 0 4px #fff);
+    animation:capsuleStarTwinkle .8s ease-in-out infinite alternate;
+  }
+  #capsule.rainbow-capsule::before{ content:'✨'; left:-18px; top:-13px; }
+  #capsule.rainbow-capsule::after{ content:'✦'; right:-14px; bottom:-9px; animation-delay:.25s; }
+  @keyframes capsuleStarTwinkle{from{opacity:.45;transform:scale(.75)}to{opacity:1;transform:scale(1.2)}}
+
+  .first-get{
+    display:block; margin-bottom:7px; font-size:21px;
+    color:#ff5fa8; text-shadow:0 1px 0 #fff;
+  }
+
+  /* 左右タップ操作ゾーン */
+  .tap-zone{
+    position:absolute; top:0; bottom:0; width:50%;
+    z-index:30; touch-action:none;
+    display:flex; align-items:center;
+    background:transparent;
+    -webkit-tap-highlight-color:transparent;
+    -webkit-touch-callout:none;
+    user-select:none;
+    outline:none;
+    cursor:pointer;
+  }
+  .tap-zone-left{ left:0; justify-content:flex-start; }
+  .tap-zone-right{ right:0; justify-content:flex-end; }
+  .tap-zone.active{ background:transparent; }
+  .tap-hint{
+    font-size:34px; opacity:.4; margin:0 14px;
+    animation:hintPulse 1.6s ease-in-out infinite;
+    color:#fff; text-shadow:0 2px 6px rgba(90,40,140,.5);
+  }
+  @keyframes hintPulse{
+    0%,100%{ opacity:.3; transform:translateX(0); }
+    50%{ opacity:.65; }
+  }
+  .tap-zone-left .tap-hint{ animation-name:hintPulseLeft; }
+  .tap-zone-right .tap-hint{ animation-name:hintPulseRight; }
+  @keyframes hintPulseLeft{
+    0%,100%{ opacity:.3; transform:translateX(0); }
+    50%{ opacity:.65; transform:translateX(-4px); }
+  }
+  @keyframes hintPulseRight{
+    0%,100%{ opacity:.3; transform:translateX(0); }
+    50%{ opacity:.65; transform:translateX(4px); }
+  }
+
+  /* ==== ガチャ画面 ==== */
+  #gacha-screen{ text-align:center; padding:14px 14px 16px; position:relative; min-height:0; height:min(94vh,700px); overflow:hidden; }
+  #gacha-screen.result-open #machine-wrap,
+  #gacha-screen.result-open #leverBtn{ display:none !important; }
+  #gacha-screen.result-open #popup{ margin-top:10px; }
+  #gacha-screen.result-open #restartBtn{ margin-top:10px; }
+  #gacha-title{
+    font-size:26px; font-weight:900; margin:2px 0 6px;
+    background:linear-gradient(90deg,var(--pink-deep),var(--purple-deep),var(--blue-deep));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:hueMove 3s linear infinite;
+  }
+  @keyframes hueMove{ 0%{filter:hue-rotate(0deg);} 100%{filter:hue-rotate(360deg);} }
+  #final-score{ position:relative; z-index:20; font-weight:800; color:#7a4bbf; margin:0 auto 7px; font-size:15px; line-height:1.35; }
+
+  #machine-wrap{
+    position:relative; height:310px;
+    display:flex; align-items:flex-end; justify-content:center;
+    margin:0 auto 8px; overflow:visible;
+  }
+  #gacha-machine{
+    position:relative; width:190px; height:278px;
+    filter:drop-shadow(0 12px 12px rgba(90,40,140,.35));
+    transform-origin:50% 86%;
+  }
+  #gacha-machine.shake{ animation:machineShake .68s ease; }
+  #gacha-machine.glow{ filter:drop-shadow(0 0 22px #ffd6ff) drop-shadow(0 12px 12px rgba(90,40,140,.35)); }
+  @keyframes machineShake{
+    0%,100%{ transform:rotate(0deg); }
+    18%{ transform:rotate(-3deg); }
+    36%{ transform:rotate(3deg); }
+    54%{ transform:rotate(-2deg); }
+    72%{ transform:rotate(2deg); }
+  }
+  .machine-dome{
+    position:absolute; left:19px; top:0; width:152px; height:142px;
+    border-radius:72px 72px 26px 26px;
+    background:linear-gradient(145deg,rgba(255,255,255,.88),rgba(180,235,255,.48) 42%,rgba(210,175,255,.58));
+    border:6px solid #fff8ff; overflow:hidden;
+    box-shadow:inset 0 0 18px rgba(255,255,255,.9), inset 0 -12px 20px rgba(120,80,200,.18), 0 5px 0 #c798ec;
+  }
+  .machine-dome::after{
+    content:''; position:absolute; left:18px; top:10px; width:28px; height:80px;
+    border-radius:50%; background:linear-gradient(90deg,rgba(255,255,255,.8),rgba(255,255,255,0));
+    transform:rotate(18deg);
+  }
+  .mini-capsule{ position:absolute; width:38px; height:38px; border-radius:50%; border:3px solid rgba(255,255,255,.9); box-shadow:0 3px 5px rgba(80,40,120,.22); }
+  .mini-capsule::after{ content:''; position:absolute; left:0; right:0; top:17px; height:3px; background:rgba(255,255,255,.85); }
+  .mc1{ left:18px; top:56px; background:linear-gradient(#ff91c9 50%,#fff 50%); transform:rotate(-18deg); }
+  .mc2{ left:57px; top:28px; background:linear-gradient(#9ee8ff 50%,#fff 50%); transform:rotate(12deg); }
+  .mc3{ right:17px; top:55px; background:linear-gradient(#fff29e 50%,#fff 50%); transform:rotate(22deg); }
+  .mc4{ left:42px; bottom:10px; background:linear-gradient(#c9a6ff 50%,#fff 50%); transform:rotate(-8deg); }
+  .mc5{ right:38px; bottom:9px; background:linear-gradient(#ffb4d9 50%,#fff 50%); transform:rotate(10deg); }
+  .machine-body{
+    position:absolute; left:8px; bottom:0; width:174px; height:154px;
+    border-radius:24px 24px 18px 18px;
+    background:linear-gradient(145deg,#ff9ecf,#c9a6ff 58%,#9ee8ff);
+    border:6px solid #fff8ff;
+    box-shadow:inset 8px 8px 12px rgba(255,255,255,.32), inset -8px -10px 14px rgba(100,55,165,.18), 0 6px 0 #9a6fd0;
+  }
+  .machine-label{
+    position:absolute; left:50%; top:13px; transform:translateX(-50%);
+    width:116px; padding:5px 6px; border-radius:12px;
+    background:#fff9ff; color:#a44bb5; font-size:13px; font-weight:900;
+    box-shadow:0 3px 0 rgba(120,70,170,.2);
+  }
+  .machine-handle-base{
+    position:absolute; left:50%; top:48px; transform:translateX(-50%);
+    width:66px; height:66px; border-radius:50%;
+    background:linear-gradient(145deg,#fff,#eee0ff);
+    border:5px solid #8e62c8; box-shadow:inset 0 3px 5px #fff,0 4px 0 #704ca6;
+  }
+  #machineHandle{
+    position:absolute; left:50%; top:50%; width:48px; height:16px;
+    border-radius:10px; background:linear-gradient(#fff29e,#ffc85f);
+    border:3px solid #9b6b2d; transform:translate(-50%,-50%) rotate(0deg);
+    transform-origin:50% 50%; box-shadow:0 2px 0 rgba(80,45,20,.25);
+  }
+  #machineHandle.turn{ animation:handleTurn .65s ease; }
+  @keyframes handleTurn{ 0%{transform:translate(-50%,-50%) rotate(0);} 70%{transform:translate(-50%,-50%) rotate(330deg);} 100%{transform:translate(-50%,-50%) rotate(360deg);} }
+  .machine-slot{
+    position:absolute; left:50%; bottom:17px; transform:translateX(-50%);
+    width:94px; height:42px; border-radius:10px 10px 18px 18px;
+    background:linear-gradient(#6a4398,#2d173e); border:5px solid #fff4ff;
+    box-shadow:inset 0 7px 8px rgba(0,0,0,.35),0 3px 0 #7752a8;
+  }
+  .flying-heart{ position:absolute; font-size:28px; z-index:8; filter:drop-shadow(0 2px 4px rgba(150,20,90,.4)); }
+
+  #capsule{
+    position:absolute; left:50%; bottom:6px; transform:translateX(-50%);
+    width:64px; height:64px; border-radius:50%;
+    background:linear-gradient(180deg,#ff9ecf 0 48%,#fff 48% 53%,#9ee8ff 53% 100%);
+    border:5px solid #ffffffdd; box-shadow:0 8px 16px rgba(90,40,140,.4);
+    cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:24px; z-index:12;
+    touch-action:manipulation;
+  }
+  #capsule.pop-in{ animation:capsulePop .9s cubic-bezier(.34,1.56,.64,1) both; }
+  @keyframes capsulePop{
+    0%{ transform:translate(-50%,-42px) scale(.35); opacity:0; }
+    62%{ transform:translate(-50%,8px) scale(1.12); opacity:1; }
+    82%{ transform:translate(-50%,-3px) scale(.96); }
+    100%{ transform:translate(-50%,0) scale(1); }
+  }
+  #capsule.wiggle{ animation:capsuleWiggle 1.4s ease-in-out infinite; }
+  @keyframes capsuleWiggle{
+    0%,100%{ transform:translate(-50%,0) rotate(0deg); }
+    50%{ transform:translate(-50%,-7px) rotate(7deg); }
+  }
+  #leverBtn{
+    border:none; cursor:pointer; min-width:210px; min-height:58px;
+    font-size:17px; font-weight:900; color:#fff; line-height:1.25;
+    padding:10px 28px; border-radius:28px;
+    background:linear-gradient(135deg,var(--pink-deep),var(--purple-deep));
+    box-shadow:0 6px 0 #7748b0,0 9px 16px rgba(90,40,140,.25);
+    transition:transform .08s,box-shadow .08s,filter .2s;
+    touch-action:manipulation;
+  }
+  #leverBtn:disabled{ filter:grayscale(.55) brightness(.9); cursor:default; }
+  #leverBtn:active:not(:disabled){ transform:translateY(5px); box-shadow:0 1px 0 #7748b0; }
+
+  #popup{
+    margin:14px auto 0; max-width:520px;
+    background:linear-gradient(135deg,#fff,#ffe6f7); border-radius:20px; padding:18px;
+    box-shadow:0 8px 20px rgba(150,90,180,.3); font-weight:800; color:#a53fa0; font-size:17px;
+    animation:popupIn .5s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes popupIn{ 0%{opacity:0;transform:translateY(20px) scale(.85);} 100%{opacity:1;transform:translateY(0) scale(1);} }
+  #restartBtn{
+    margin-top:12px; border:none; cursor:pointer; background:linear-gradient(135deg,var(--blue),var(--purple));
+    color:#fff; font-weight:900; padding:12px 22px; border-radius:20px; box-shadow:0 5px 0 #7a5fd0; font-size:15px;
+  }
+  #restartBtn:active{ transform:translateY(5px); box-shadow:0 0 0 #7a5fd0; }
+
+  /* ガチャ本体をテキストに重ならないコンパクトサイズへ調整 */
+  #machine-wrap{
+    height:224px; margin:0 auto 8px;
+    align-items:flex-start; overflow:visible;
+  }
+  #gacha-machine{
+    width:154px; height:224px;
+    filter:drop-shadow(0 9px 9px rgba(90,40,140,.32));
+  }
+  .machine-dome{
+    left:15px; width:124px; height:114px;
+    border-radius:60px 60px 22px 22px; border-width:5px;
+  }
+  .machine-dome::after{ left:14px; top:8px; width:22px; height:64px; }
+  .mini-capsule{ width:31px; height:31px; border-width:2px; }
+  .mini-capsule::after{ top:14px; height:2px; }
+  .mc1{ left:15px; top:45px; }
+  .mc2{ left:46px; top:22px; }
+  .mc3{ right:14px; top:44px; }
+  .mc4{ left:34px; bottom:8px; }
+  .mc5{ right:30px; bottom:7px; }
+  .machine-body{
+    left:6px; width:142px; height:125px;
+    border-radius:20px 20px 15px 15px; border-width:5px;
+  }
+  .machine-label{ top:10px; width:100px; padding:4px 4px; font-size:11px; }
+  .machine-handle-base{ top:38px; width:55px; height:55px; border-width:4px; }
+  #machineHandle{ width:40px; height:14px; border-width:2px; }
+  .machine-slot{ bottom:13px; width:76px; height:34px; border-width:4px; }
+  #capsule{ bottom:4px; width:56px; height:56px; font-size:21px; border-width:4px; }
+  #leverBtn{ min-width:190px; min-height:50px; margin-top:0; padding:8px 24px; }
+  #popup{ position:relative; z-index:20; margin-top:10px; padding:14px; font-size:15px; }
+
+  @media (max-height:700px){
+    #gacha-screen{ min-height:0; padding-top:12px; }
+    #gacha-title{ font-size:23px; }
+    #final-score{ margin-bottom:10px; font-size:15px; }
+    #machine-wrap{ height:184px; margin-bottom:4px; transform:none; }
+    #gacha-machine{ transform:scale(.78); transform-origin:top center; }
+    #leverBtn{ min-height:46px; font-size:15px; }
+    #popup{ margin-top:8px; padding:12px; font-size:14px; }
+  }
+
+  @media (max-height:600px){
+    #gacha-screen{ padding-top:8px; padding-bottom:10px; }
+    #gacha-title{ font-size:20px; margin-bottom:2px; }
+    #final-score{ font-size:13px; margin-bottom:4px; }
+    #playSummary{ margin-bottom:5px; padding:5px 7px; }
+    .summary-chip{ font-size:12px; padding:2px 6px; }
+    #rainbowGachaNote,#luckyHeartNote{ font-size:12px; margin-bottom:5px; padding-top:5px; padding-bottom:5px; }
+    #machine-wrap{ height:158px; }
+    #gacha-machine{ transform:scale(.67); }
+    #popup{ padding:10px; font-size:13px; }
+    .first-get{ font-size:18px; margin-bottom:4px; }
+    #restartBtn{ padding:9px 18px; font-size:13px; }
+  }
+
+  /* ==== かるい知育：ハートゲージ・ふりかえり・カテゴリ ==== */
+  #heartGauge{
+    position:absolute; top:12px; right:14px; z-index:27;
+    display:flex; align-items:center; gap:5px;
+    padding:6px 9px; border-radius:16px;
+    background:rgba(255,255,255,.78);
+    box-shadow:0 3px 0 rgba(200,110,170,.25),0 5px 10px rgba(90,40,120,.12);
+    color:#d84e91; font-weight:900; font-size:15px;
+    pointer-events:none;
+  }
+  #heartGauge .hearts{ letter-spacing:1px; white-space:nowrap; }
+  #heartGauge .heart-total{ min-width:24px; text-align:left; color:#a94c91; font-size:12px; }
+  #heartGauge.magic-ready{ animation:heartGaugeMagic .65s ease both; }
+  @keyframes heartGaugeMagic{
+    0%{transform:scale(1)} 45%{transform:scale(1.14)} 100%{transform:scale(1)}
+  }
+  @media (max-width:430px){
+    #heartGauge{ top:56px; right:8px; padding:5px 7px; font-size:13px; }
+    #heartGauge .heart-total{font-size:11px;min-width:20px}
+  }
+
+  #playSummary{
+    width:min(88%,360px); margin:0 auto 9px; padding:7px 9px;
+    border-radius:15px; background:rgba(255,255,255,.7);
+    box-shadow:0 3px 9px rgba(130,80,170,.12);
+    color:#7f4ca8; font-weight:900;
+  }
+  .summary-counts{ display:flex; justify-content:center; gap:8px; }
+  .summary-chip{
+    display:inline-flex; align-items:center;
+    padding:3px 8px; border-radius:12px; background:#fff;
+    box-shadow:0 2px 5px rgba(140,90,180,.11); font-size:14px;
+  }
+
+  .collection-categories{ display:block; margin-bottom:18px; }
+  .collection-category{ margin:0 0 18px; }
+  .collection-category-title{
+    display:flex; align-items:center; justify-content:space-between;
+    margin:0 2px 6px; padding:4px 8px; border-radius:12px;
+    background:linear-gradient(135deg,#f8e9ff,#e9f7ff);
+    color:#7a3fa0; font-size:12px; font-weight:900;
+  }
+  .collection-category-title span:last-child{ opacity:.72; font-size:11px; }
+  .collection-category .collection-grid{ margin-bottom:0; }
+
+  /* ==== コレクションボタン＆モーダル ==== */
+  .collection-btn{
+    position:absolute; top:10px; right:22px; z-index:60;
+    width:50px; height:50px; border-radius:50%; border:none;
+    background:linear-gradient(135deg,var(--yellow),var(--pink));
+    font-size:22px; cursor:pointer;
+    box-shadow:0 5px 0 #d98fc0, 0 7px 10px rgba(0,0,0,.2);
+    transition:transform .08s, box-shadow .08s;
+    touch-action:manipulation;
+  }
+  .collection-btn:active{ transform:translateY(4px); box-shadow:0 1px 0 #d98fc0; }
+  .collection-badge{
+    position:absolute; top:-4px; right:-4px;
+    background:#ff4f8b; color:#fff; font-size:11px; font-weight:900;
+    border-radius:10px; padding:2px 6px; box-shadow:0 2px 4px rgba(0,0,0,.3);
+  }
+
+  .modal-overlay{
+    position:fixed; inset:0; z-index:200;
+    background:rgba(70,30,110,.55);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .modal-box{
+    background:linear-gradient(160deg,#fff,#fff0fb);
+    border-radius:28px; padding:22px;
+    max-width:520px; width:100%; max-height:82vh; overflow-y:auto;
+    box-shadow:0 15px 40px rgba(0,0,0,.35);
+    text-align:center;
+    animation:popupIn .4s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  .modal-box h2{ margin:2px 0 16px; color:#7a3fa0; font-size:20px; }
+  .collection-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
+    margin-bottom:18px;
+  }
+  @media (min-width:560px){ .collection-grid{ grid-template-columns:repeat(4,1fr); } }
+  @media (min-width:760px){ .collection-grid{ grid-template-columns:repeat(5,1fr); } }
+  .collection-card{
+    background:#fff; border-radius:16px; padding:12px 6px;
+    box-shadow:0 4px 10px rgba(150,100,200,.25);
+    font-size:12.5px; font-weight:700; color:#7a3fa0;
+  }
+  .collection-card .icon{ font-size:32px; display:block; margin-bottom:4px; }
+  .collection-card.locked{ filter:grayscale(1) brightness(.8); opacity:.5; }
+  .collection-card .count{
+    display:inline-block; margin-top:5px;
+    background:linear-gradient(135deg,var(--pink),var(--purple));
+    color:#fff; border-radius:10px; padding:1px 8px; font-size:11px;
+  }
+  .modal-close-btn{
+    border:none; cursor:pointer;
+    background:linear-gradient(135deg,var(--blue),var(--purple));
+    color:#fff; font-weight:900; padding:10px 26px; border-radius:20px;
+    box-shadow:0 4px 0 #7a5fd0; font-size:14px;
+  }
+  .modal-close-btn:active{ transform:translateY(4px); box-shadow:0 0 0 #7a5fd0; }
+
+
+  /* ==== コンプリート・大まじょ ==== */
+  .title-witch{ position:relative; }
+  .title-witch.grand-witch::before{
+    content:'👑'; position:absolute; left:50%; top:-23px;
+    transform:translateX(-50%) rotate(-7deg); font-size:.42em;
+    filter:drop-shadow(0 2px 3px rgba(90,40,120,.35));
+    animation:grandCrownFloat 1.5s ease-in-out infinite;
+  }
+  .title-witch.grand-witch::after{
+    content:'✦'; position:absolute; right:-18px; top:17%; color:#fff7a8;
+    font-size:.34em; text-shadow:-85px 38px 0 #9ee8ff, -48px 88px 0 #ff9ecf;
+    animation:grandSparkle 1s ease-in-out infinite alternate;
+  }
+  @keyframes grandCrownFloat{ 50%{transform:translateX(-50%) translateY(-4px) rotate(5deg)} }
+  @keyframes grandSparkle{ from{opacity:.45;transform:scale(.8)} to{opacity:1;transform:scale(1.25)} }
+
+  #player.grand-witch .player-aura{
+    inset:-14px;
+    background:conic-gradient(from 0deg,rgba(255,120,190,.9),rgba(255,230,100,.9),rgba(100,235,210,.9),rgba(105,210,255,.9),rgba(180,135,255,.9),rgba(255,120,190,.9));
+    filter:blur(4px);
+    animation:rainbowAuraSpin 2.4s linear infinite, auraPulse 1.2s ease-in-out infinite;
+  }
+  #player.grand-witch::before{
+    content:'👑'; position:absolute; z-index:5; top:-20px; left:50%;
+    transform:translateX(-50%) rotate(-8deg); font-size:25px;
+    filter:drop-shadow(0 2px 3px rgba(70,30,100,.4)); pointer-events:none;
+  }
+  #player.grand-witch::after{
+    content:'✦'; position:absolute; z-index:5; right:-2px; top:4px;
+    color:#fff6a4; font-size:19px; text-shadow:-62px 22px 0 #9ee8ff;
+    animation:grandSparkle .9s ease-in-out infinite alternate; pointer-events:none;
+  }
+
+  #collectionCompleteBanner{
+    margin:-4px auto 14px; padding:10px 14px; border-radius:18px;
+    width:min(100%,420px); color:#7a3fa0; font-size:15px; font-weight:900;
+    background:linear-gradient(90deg,#fff4a8,#ffd7ef,#d9c8ff,#c8f3ff);
+    box-shadow:0 4px 0 rgba(130,85,190,.18),0 7px 14px rgba(100,55,150,.12);
+  }
+  .collection-category-title.complete{ color:#b06a22; background:linear-gradient(90deg,#fff9cf,#ffe7f4); }
+
+  #completionOverlay{ z-index:260; }
+  .completion-box{
+    position:relative; overflow:hidden; width:min(92vw,460px); padding:28px 22px 24px;
+    background:linear-gradient(160deg,#fff,#fff0fb 55%,#edfaff);
+    border-radius:30px; text-align:center;
+    box-shadow:0 18px 50px rgba(60,25,100,.42), inset 0 0 0 4px #ffffffbb;
+    animation:completionIn .65s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes completionIn{ from{opacity:0;transform:scale(.55) rotate(-5deg)} to{opacity:1;transform:scale(1) rotate(0)} }
+  .completion-crown{ font-size:72px; line-height:1; animation:titleFloat 1.6s ease-in-out infinite; }
+  .completion-title{
+    margin:8px 0 7px; font-size:clamp(25px,7vw,38px); font-weight:900;
+    background:linear-gradient(90deg,#ff69ad,#9a6df0,#43c9ef);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .completion-text{ margin:0 0 17px; color:#8046ad; font-size:17px; font-weight:900; line-height:1.5; }
+  #completionCloseBtn{
+    border:none; min-width:180px; padding:12px 26px; border-radius:26px;
+    color:#fff; font-size:17px; font-weight:900; cursor:pointer;
+    background:linear-gradient(135deg,var(--pink-deep),var(--purple-deep));
+    box-shadow:0 6px 0 #7748b0; touch-action:manipulation;
+  }
+  #completionCloseBtn:active{ transform:translateY(5px); box-shadow:0 1px 0 #7748b0; }
+  .completion-confetti{ position:absolute; inset:0; pointer-events:none; }
+  .completion-confetti span{
+    position:absolute; left:50%; top:48%; font-size:22px;
+    animation:completeBurst 1.3s ease-out infinite; animation-delay:var(--d);
+  }
+  @keyframes completeBurst{
+    0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateX(0) scale(.5)}
+    18%{opacity:1}
+    100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateX(190px) scale(1.1)}
+  }
+
+  /* ==== 一時停止 ==== */
+  #pauseBtn{
+    position:absolute; top:76px; left:22px; z-index:38;
+    width:46px; height:46px; border:none; border-radius:50%;
+    background:linear-gradient(135deg,#fff6b5,#ffb8dc);
+    color:#7b4ca8; font-size:21px; font-weight:900; cursor:pointer;
+    box-shadow:0 4px 0 #cb83b2,0 6px 10px rgba(70,30,100,.18);
+    touch-action:manipulation;
+  }
+  #pauseBtn:active{ transform:translateY(3px); box-shadow:0 1px 0 #cb83b2; }
+  #pauseBtn:disabled{ opacity:.45; cursor:default; }
+  @media (max-width:430px){
+    #pauseBtn{ top:72px; left:18px; width:42px; height:42px; font-size:19px; }
+  }
+  #pauseOverlay{
+    position:absolute; inset:0; z-index:100;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(91,49,139,.42); backdrop-filter:blur(3px);
+  }
+  .pause-card{
+    width:min(82%,300px); padding:24px 20px 20px;
+    border-radius:26px; text-align:center;
+    background:linear-gradient(160deg,#fff,#fff0fb);
+    box-shadow:0 12px 30px rgba(60,25,100,.35),inset 0 0 0 3px #ffffffaa;
+  }
+  .pause-icon{ font-size:45px; line-height:1; margin-bottom:8px; }
+  .pause-title{ color:#7a4bbf; font-size:22px; font-weight:900; margin-bottom:15px; }
+  #resumeBtn{
+    border:none; min-width:180px; padding:12px 22px; border-radius:24px;
+    color:#fff; font-size:17px; font-weight:900; cursor:pointer;
+    background:linear-gradient(135deg,var(--pink-deep),var(--purple-deep));
+    box-shadow:0 5px 0 #7748b0; touch-action:manipulation;
+  }
+  #resumeBtn:active{ transform:translateY(4px); box-shadow:0 1px 0 #7748b0; }
+  #game-area.paused .item,
+  #game-area.paused #player,
+  #game-area.paused .rainbow-trail{
+    animation-play-state:paused !important;
+  }
+
+  /* ==== 全画面ボタン ==== */
+  #fullscreenBtn{
+    position:absolute; top:10px; right:82px; z-index:72;
+    width:50px; height:50px; border:none; border-radius:50%;
+    background:linear-gradient(135deg,#ffffff,#c9f3ff,#d9c8ff);
+    color:#6f4ca8; font-size:22px; font-weight:900; cursor:pointer;
+    box-shadow:0 5px 0 #8ea6d8,0 7px 10px rgba(0,0,0,.18);
+    transition:transform .08s,box-shadow .08s; touch-action:manipulation;
+  }
+  #fullscreenBtn:active{ transform:translateY(4px); box-shadow:0 1px 0 #8ea6d8; }
+  #fullscreenBtn.unsupported{ display:none; }
+  @media (max-width:430px){
+    #fullscreenBtn{ right:72px; width:46px; height:46px; font-size:20px; }
+  }
+
+
+  /* ==== タブレット向け軽量化 ==== */
+  body.low-power .screen{backdrop-filter:none;box-shadow:0 6px 16px rgba(120,70,180,.22),inset 0 0 0 2px #ffffff99}
+  body.low-power .sparkle{animation:none;opacity:.42}
+  body.game-active #sparkle-bg{display:none}
+  body.low-power .title-witch,
+  body.low-power .player-aura,
+  body.low-power .player-sparkles,
+  body.low-power .player-emoji,
+  body.low-power .tap-hint,
+  body.low-power #gacha-title,
+  body.low-power #capsule.wiggle,
+  body.low-power .completion-crown,
+  body.low-power .completion-confetti span{animation:none!important}
+  body.low-power .player-sparkles{display:none}
+  body.low-power .player-aura{filter:none;opacity:.72}
+  body.low-power .item{filter:none}
+  body.low-power .rainbow-candy-item{filter:none}
+  body.low-power .rainbow-candy-item::before{animation:none;filter:none;background:linear-gradient(135deg,#ff7eb9,#ffe36e,#76ddff,#a98cff)}
+  body.low-power .rainbow-candy-item::after{animation:none}
+  body.low-power #bonusHud{animation:none;background-size:100% 100%}
+  body.low-power #player.rainbow-bonus .player-aura,
+  body.low-power #player.grand-witch .player-aura{animation:none;filter:none;background:radial-gradient(circle,#ffe56f,#ff9ed1 48%,transparent 72%)}
+  body.low-power #gacha-machine,
+  body.low-power #gacha-machine.glow{filter:none}
+  body.low-power #pauseOverlay{backdrop-filter:none}
+  body.low-power .spike-item{animation:none;box-shadow:0 0 7px rgba(255,30,70,.75)}
+  body.low-power .warn-badge{animation:none}
+  body.low-power .rainbow-trail{display:none}
+  .item{left:0!important;top:0!important;will-change:transform}
+  #player{will-change:left}
+  .screen.hidden *{animation-play-state:paused!important}
+  #game-area.paused *{animation-play-state:paused!important}
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}
+  }
+
+</style>
+</head>
+<body>
+
+<div id="sparkle-bg"></div>
+
+<div id="app">
+
+  <button id="soundBtn" class="sound-btn" title="おとをきりかえる" aria-label="おとをきりかえる">🔊</button>
+  <button id="fullscreenBtn" title="ぜんがめん" aria-label="ぜんがめん">⛶</button>
+  <button id="collectionBtn" class="collection-btn" title="コレクション" aria-label="コレクションをひらく">📖<span id="collectionBadge" class="collection-badge hidden">0</span></button>
+
+  <!-- ================= タイトル画面 ================= -->
+  <div class="screen" id="title-screen">
+    <div class="title-moon"></div>
+    <div class="title-content">
+      <h1>✨まほうの<br>キャッチゲーム✨</h1>
+      <div class="title-witch">🧙‍♀️</div>
+      <p class="title-lead">キラキラアイテムを<br>たくさんキャッチしよう！</p>
+      <div class="title-tips">
+        <div class="title-tip">💖 ハートを5こあつめると<br>はじめてのアイテムがでやすいよ！</div>
+        <div class="title-tip">🌈 にじいろキャンディは<br>とくべつなまほう！</div>
+      </div>
+      <div id="best3Panel" aria-label="ベスト3">
+        <div id="best3Title">🏆 ベスト3</div>
+        <div id="best3List"><span class="best3-empty">—</span></div>
+      </div>
+      <button id="startBtn">あそぶ！</button>
+    </div>
+  </div>
+
+  <!-- ================= ゲーム画面 ================= -->
+  <div class="screen hidden" id="game-screen">
+    <div id="header">
+      <div class="hud-pill" id="scoreBox">⭐ スコア <span id="scoreValue">0</span></div>
+      <div id="header-right">
+        <div class="hud-pill" id="timer">⏰ <span id="timeValue">60</span></div>
+      </div>
+      <button id="pauseBtn" title="いちじていし" aria-label="いちじていし" disabled>⏸</button>
+    </div>
+
+    <div id="game-area">
+      <div id="countdownOverlay" class="hidden"><div id="countdownText"></div></div>
+      <div id="pauseOverlay" class="hidden" role="dialog" aria-modal="true" aria-label="いちじていし">
+        <div class="pause-card">
+          <div class="pause-icon">🌙</div>
+          <div class="pause-title">ちょっと おやすみ</div>
+          <button id="resumeBtn">▶ つづける</button>
+        </div>
+      </div>
+      <div id="heartGauge" aria-label="ラッキーハート 0こ"><span class="hearts" id="heartGaugeHearts">♡♡♡♡♡</span><span class="heart-total" id="heartGaugeTotal">×0</span></div>
+      <div id="bonusHud" class="hidden">🌈 ボーナス あと<span id="bonusSeconds">5</span></div>
+      <div id="gameAnnouncement" class="hidden"></div>
+      <div id="player">
+        <div class="player-aura"></div>
+        <div class="player-sparkles">
+          <span class="spk spk1">✨</span>
+          <span class="spk spk2">💫</span>
+          <span class="spk spk3">⭐</span>
+        </div>
+        <div class="player-emoji">🧙‍♀️</div>
+      </div>
+
+      <div class="tap-zone tap-zone-left" id="zoneLeft"><span class="tap-hint">◀</span></div>
+      <div class="tap-zone tap-zone-right" id="zoneRight"><span class="tap-hint">▶</span></div>
+    </div>
+  </div>
+
+  <!-- ================= ガチャ画面 ================= -->
+  <div class="screen hidden" id="gacha-screen">
+    <div id="gacha-title">✨ガチャタイム✨</div>
+    <div id="highScoreNotice" class="hidden"></div>
+    <div id="final-score"></div>
+    <div id="playSummary" class="hidden"></div>
+    <div id="rainbowGachaNote" class="hidden">🌈 にじいろキャンディの まほう！</div>
+    <div id="luckyHeartNote" class="hidden"></div>
+
+    <div id="machine-wrap">
+      <div id="gacha-machine" aria-label="カプセルトイ">
+        <div class="machine-dome">
+          <span class="mini-capsule mc1"></span><span class="mini-capsule mc2"></span>
+          <span class="mini-capsule mc3"></span><span class="mini-capsule mc4"></span>
+          <span class="mini-capsule mc5"></span>
+        </div>
+        <div class="machine-body">
+          <div class="machine-label">✨ まほうガチャ ✨</div>
+          <div class="machine-handle-base"><div id="machineHandle"></div></div>
+          <div class="machine-slot"></div>
+        </div>
+      </div>
+      <div id="capsule" class="hidden" aria-label="カプセルをひらく">🎁</div>
+    </div>
+
+    <button id="leverBtn" disabled>ガチャガチャを<br>やる！</button>
+
+    <div id="popup" class="hidden"></div>
+    <button id="restartBtn" class="hidden">もういちど あそぶ！</button>
+  </div>
+
+</div>
+
+<!-- ================= コレクションモーダル ================= -->
+<div id="collectionModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h2>📖 コレクション</h2>
+    <div id="collectionCompleteBanner" class="hidden">✨ まほうずかん かんせい！ ✨</div>
+    <div id="collectionGrid" class="collection-categories"></div>
+    <button id="closeCollectionBtn" class="modal-close-btn">とじる</button>
+    <div style="margin-top:10px;">
+      <button id="resetCollectionBtn" style="border:none;background:none;color:#a983c9;font-size:12px;text-decoration:underline;cursor:pointer;">コレクションをリセットする</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="completionOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="まほうずかん完成">
+  <div class="completion-box">
+    <div class="completion-confetti" aria-hidden="true">
+      <span style="--a:0deg;--d:0s">✨</span><span style="--a:45deg;--d:.08s">⭐</span>
+      <span style="--a:90deg;--d:.16s">💫</span><span style="--a:135deg;--d:.24s">🌟</span>
+      <span style="--a:180deg;--d:.12s">✨</span><span style="--a:225deg;--d:.2s">⭐</span>
+      <span style="--a:270deg;--d:.28s">💫</span><span style="--a:315deg;--d:.04s">🌟</span>
+    </div>
+    <div class="completion-crown">👑</div>
+    <div class="completion-title">まほうずかん かんせい！</div>
+    <p class="completion-text">🧙‍♀️ にじいろ大まじょに<br>レベルアップしたよ！</p>
+    <button id="completionCloseBtn">やったね！</button>
+  </div>
+</div>
+
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- 背景キラキラ生成 ---------- */
+  const sparkleBg = document.getElementById('sparkle-bg');
+  const sparkleEmojis = ['✨','⭐','💫','🌟'];
+  const initialLowPower = ((navigator.maxTouchPoints || 0) > 0 && innerWidth <= 1024) ||
+    ((navigator.hardwareConcurrency || 8) <= 4) ||
+    (typeof navigator.deviceMemory === 'number' && navigator.deviceMemory <= 4);
+  document.body.classList.toggle('low-power', initialLowPower);
+  const sparkleCount = initialLowPower ? 4 : 6;
+  for(let i=0;i<sparkleCount;i++){
+    const s = document.createElement('div');
+    s.className = 'sparkle';
+    s.textContent = sparkleEmojis[Math.floor(Math.random()*sparkleEmojis.length)];
+    s.style.left = Math.random()*100+'vw';
+    s.style.top = Math.random()*100+'vh';
+    s.style.animationDelay = (Math.random()*3)+'s';
+    s.style.fontSize = (12+Math.random()*16)+'px';
+    sparkleBg.appendChild(s);
+  }
+
+  /* ---------- 要素取得 ---------- */
+  const gameScreen = document.getElementById('game-screen');
+  const gachaScreen = document.getElementById('gacha-screen');
+  const gameArea = document.getElementById('game-area');
+  const player = document.getElementById('player');
+  const scoreValueEl = document.getElementById('scoreValue');
+  const timeValueEl = document.getElementById('timeValue');
+  const timerBox = document.getElementById('timer');
+  const zoneLeft = document.getElementById('zoneLeft');
+  const zoneRight = document.getElementById('zoneRight');
+  const bonusHud = document.getElementById('bonusHud');
+  const bonusSecondsEl = document.getElementById('bonusSeconds');
+  const gameAnnouncement = document.getElementById('gameAnnouncement');
+  const rainbowGachaNote = document.getElementById('rainbowGachaNote');
+  const luckyHeartNote = document.getElementById('luckyHeartNote');
+  const titleScreen = document.getElementById('title-screen');
+  const startBtn = document.getElementById('startBtn');
+  const soundBtn = document.getElementById('soundBtn');
+  const countdownOverlay = document.getElementById('countdownOverlay');
+  const countdownText = document.getElementById('countdownText');
+  const titleWitch = document.querySelector('.title-witch');
+  const collectionCompleteBanner = document.getElementById('collectionCompleteBanner');
+  const completionOverlay = document.getElementById('completionOverlay');
+  const completionCloseBtn = document.getElementById('completionCloseBtn');
+  const heartGauge = document.getElementById('heartGauge');
+  const heartGaugeHearts = document.getElementById('heartGaugeHearts');
+  const heartGaugeTotal = document.getElementById('heartGaugeTotal');
+  const playSummary = document.getElementById('playSummary');
+  const best3List = document.getElementById('best3List');
+  const best3Title = document.getElementById('best3Title');
+  const highScoreNotice = document.getElementById('highScoreNotice');
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  const resumeBtn = document.getElementById('resumeBtn');
+
+
+  /* ---------- Web Audio API 効果音 ---------- */
+  const SOUND_STORAGE_KEY = 'magicCatchGame.soundMuted.v1';
+  let audioCtx = null;
+  let soundMuted = false;
+
+  try{ soundMuted = localStorage.getItem(SOUND_STORAGE_KEY) === '1'; }catch(_err){}
+
+  function updateSoundButton(){
+    soundBtn.textContent = soundMuted ? '🔇' : '🔊';
+    soundBtn.setAttribute('aria-label', soundMuted ? 'おとをだす' : 'おとをけす');
+    soundBtn.title = soundMuted ? 'おとをだす' : 'おとをけす';
+  }
+
+  function ensureAudio(){
+    if(soundMuted) return null;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if(!AudioContextClass) return null;
+    if(!audioCtx) audioCtx = new AudioContextClass();
+    if(audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+    return audioCtx;
+  }
+
+  function tone(freq, duration=.09, type='sine', volume=.035, delay=0, endFreq=null){
+    const ctx = ensureAudio();
+    if(!ctx) return;
+    const start = ctx.currentTime + delay;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, start);
+    if(endFreq) osc.frequency.exponentialRampToValueAtTime(Math.max(30,endFreq), start+duration);
+    gain.gain.setValueAtTime(.0001, start);
+    gain.gain.exponentialRampToValueAtTime(volume, start+.012);
+    gain.gain.exponentialRampToValueAtTime(.0001, start+duration);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(start); osc.stop(start+duration+.03);
+  }
+
+  function playSound(name){
+    if(soundMuted) return;
+    switch(name){
+      case 'start':
+        tone(523,.10,'sine',.035,0); tone(659,.11,'sine',.035,.10); tone(784,.18,'sine',.04,.21); break;
+      case 'count':
+        tone(440,.08,'sine',.025); break;
+      case 'catch':
+        tone(720,.07,'sine',.024,0,920); break;
+      case 'heart':
+        tone(523,.08,'sine',.03,0); tone(659,.09,'sine',.03,.07); tone(784,.13,'sine',.035,.14); break;
+      case 'spike':
+        tone(180,.16,'triangle',.028,0,95); break;
+      case 'rainbow':
+        tone(523,.10,'sine',.032,0); tone(659,.10,'sine',.032,.08); tone(784,.10,'sine',.035,.16); tone(1047,.20,'sine',.04,.24); break;
+      case 'guard':
+        tone(700,.07,'square',.018,0,1050); tone(1000,.10,'sine',.022,.06); break;
+      case 'hurry':
+        tone(660,.10,'triangle',.028,0); tone(660,.10,'triangle',.028,.15); break;
+      case 'finish':
+        tone(660,.12,'sine',.028,0); tone(523,.14,'sine',.028,.13); tone(392,.22,'sine',.03,.27); break;
+      case 'gacha':
+        for(let i=0;i<5;i++) tone(180+i*25,.055,'triangle',.018,i*.07,240+i*20); break;
+      case 'open':
+        tone(659,.09,'sine',.03,0); tone(784,.10,'sine',.032,.08); tone(988,.11,'sine',.034,.17); tone(1319,.22,'sine',.04,.27); break;
+      case 'button':
+        tone(520,.055,'sine',.018); break;
+    }
+  }
+
+  function getFullscreenElement(){
+    return document.fullscreenElement ||
+           document.webkitFullscreenElement ||
+           document.msFullscreenElement ||
+           null;
+  }
+
+  function isFullscreenSupported(){
+    const el = document.documentElement;
+    return !!(
+      el.requestFullscreen ||
+      el.webkitRequestFullscreen ||
+      el.msRequestFullscreen
+    );
+  }
+
+  function updateFullscreenButton(){
+    const active = !!getFullscreenElement();
+    fullscreenBtn.textContent = active ? '🗗' : '⛶';
+    fullscreenBtn.title = active ? 'ぜんがめんをおわる' : 'ぜんがめん';
+    fullscreenBtn.setAttribute('aria-label', active ? 'ぜんがめんをおわる' : 'ぜんがめん');
+  }
+
+  async function toggleFullscreen(){
+    try{
+      const active = getFullscreenElement();
+      if(active){
+        if(document.exitFullscreen){
+          await document.exitFullscreen();
+        }else if(document.webkitExitFullscreen){
+          document.webkitExitFullscreen();
+        }else if(document.msExitFullscreen){
+          document.msExitFullscreen();
+        }
+      }else{
+        const el = document.documentElement;
+        if(el.requestFullscreen){
+          await el.requestFullscreen({ navigationUI:'hide' }).catch(()=>el.requestFullscreen());
+        }else if(el.webkitRequestFullscreen){
+          el.webkitRequestFullscreen();
+        }else if(el.msRequestFullscreen){
+          el.msRequestFullscreen();
+        }
+      }
+    }catch(err){
+      console.warn('全画面表示を切り替えられませんでした:', err);
+    }
+    updateFullscreenButton();
+  }
+
+  if(!isFullscreenSupported()){
+    fullscreenBtn.classList.add('unsupported');
+  }else{
+    fullscreenBtn.addEventListener('click', ()=>{
+      ensureAudio();
+      playSound('button');
+      toggleFullscreen();
+    });
+    document.addEventListener('fullscreenchange', updateFullscreenButton);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+    document.addEventListener('MSFullscreenChange', updateFullscreenButton);
+    updateFullscreenButton();
+  }
+
+  soundBtn.addEventListener('click', ()=>{
+    soundMuted = !soundMuted;
+    try{ localStorage.setItem(SOUND_STORAGE_KEY, soundMuted ? '1' : '0'); }catch(_err){}
+    updateSoundButton();
+    if(!soundMuted){ ensureAudio(); playSound('button'); }
+  });
+  updateSoundButton();
+
+  /* ---------- ゲーム状態 ---------- */
+  let score = 0;
+  let timeLeft = 60;
+  let luckyCount = 0;
+  let playerX = 50; // %
+  const playerSpeed = 96; // % per second
+  const MAX_ITEMS = 8;
+  const TARGET_FRAME_MS = 1000 / 30;
+  let lowPowerMode = initialLowPower;
+  let lastFrameAt = 0;
+  let spawnAccumulator = 0;
+  let timerAccumulator = 0;
+  let bonusHudAccumulator = 0;
+  let slowFrameCount = 0;
+  const transientEffects = new Set();
+  let moveLeft = false, moveRight = false;
+  let items = [];
+  let running = false;
+  let capsuleOpened = false;
+  let spawnTimer = null;
+  let countdownTimer = null;
+  let rafId = null;
+  let startCountdownTimer = null;
+  let countdownInProgress = false;
+  let collectionCounts = {}; // 手に入れたアイテム名 -> 個数（プレイをまたいで保持）
+  let playCounts = createEmptyPlayCounts();
+  let heartMagicAnnounced = false;
+  let previousPlayResult = null;
+  let paused = false;
+  let pauseResumeTimer = null;
+  let pausedBonusRemainingMs = 0;
+
+  // にじいろキャンディ／ボーナス状態
+  let rainbowCandySpawnCount = 0;
+  let rainbowCandyCollected = false;
+  let bonusActive = false;
+  let bonusEndAt = 0;
+  let bonusTimer = null;
+  let announcementTimer = null;
+  let lastTrailAt = 0;
+  const rainbowTrailEls = new Set();
+
+  /* ---------- コレクションのブラウザ保存 ---------- */
+  const COLLECTION_STORAGE_KEY = 'magicCatchGame.collection.v1';
+  const COMPLETION_STORAGE_KEY = 'magicCatchGame.completionCelebrated.v1';
+  const PREVIOUS_PLAY_STORAGE_KEY = 'magicCatchGame.previousPlay.v1';
+  const HIGH_SCORES_STORAGE_KEY = 'magicCatchGame.highScores.v1';
+  let highScores = [];
+
+  function loadHighScores(){
+    try{
+      const raw = localStorage.getItem(HIGH_SCORES_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if(Array.isArray(parsed)){
+        highScores = [...new Set(parsed.map(Number).filter(Number.isFinite))]
+          .sort((a,b)=>b-a).slice(0,3);
+      }
+    }catch(err){
+      console.warn('ハイスコアの読み込みに失敗しました:', err);
+      highScores = [];
+    }
+  }
+
+  function saveHighScores(){
+    try{ localStorage.setItem(HIGH_SCORES_STORAGE_KEY, JSON.stringify(highScores)); }
+    catch(err){ console.warn('ハイスコアの保存に失敗しました:', err); }
+  }
+
+  function renderHighScores(){
+    best3Title.textContent = isCollectionComplete() ? '🌈 大まじょのきろく' : '🏆 ベスト3';
+    if(highScores.length === 0){
+      best3List.innerHTML = '<span class="best3-empty">—</span>';
+      return;
+    }
+    best3List.innerHTML = highScores.map((value,index)=>`<span>${index+1}. ${value}てん</span>`).join('');
+  }
+
+  function registerHighScore(value){
+    const beforeBest = highScores[0] ?? null;
+    const wasKnown = highScores.includes(value);
+    if(!wasKnown){
+      highScores.push(value);
+      highScores = [...new Set(highScores)].sort((a,b)=>b-a).slice(0,3);
+      saveHighScores();
+    }
+    renderHighScores();
+    return {
+      isNewBest: beforeBest === null || value > beforeBest,
+      enteredTop3: !wasKnown && highScores.includes(value),
+      rank: highScores.indexOf(value) + 1
+    };
+  }
+
+  function createEmptyPlayCounts(){
+    return { star:0, drop:0, heart:0, spike:0, guard:0, rainbowCandy:0 };
+  }
+
+  function loadPreviousPlayResult(){
+    try{
+      const raw = localStorage.getItem(PREVIOUS_PLAY_STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(parsed && typeof parsed === 'object') previousPlayResult = parsed;
+      }
+    }catch(err){
+      console.warn('前回結果の読み込みに失敗しました:', err);
+    }
+  }
+
+  function savePreviousPlayResult(result){
+    previousPlayResult = result;
+    try{
+      localStorage.setItem(PREVIOUS_PLAY_STORAGE_KEY, JSON.stringify(result));
+    }catch(err){
+      console.warn('前回結果の保存に失敗しました:', err);
+    }
+  }
+
+  function loadCollection(){
+    try{
+      const raw = localStorage.getItem(COLLECTION_STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(parsed && typeof parsed === 'object') collectionCounts = parsed;
+      }
+    }catch(err){
+      // プライベートブラウジング等で使えない場合はそのまま（今回のプレイ中だけ記憶）
+      console.warn('コレクションの読み込みに失敗しました:', err);
+    }
+  }
+
+  function saveCollection(){
+    try{
+      localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(collectionCounts));
+    }catch(err){
+      console.warn('コレクションの保存に失敗しました:', err);
+    }
+  }
+
+  const ITEM_TYPES = [
+    { key:'star',  emoji:'⭐', points:10, weight:30 },
+    { key:'drop',  emoji:'💧', points:10, weight:30 },
+    { key:'spike', emoji:null, points:-5, weight:22, css:'spike-item' },
+    { key:'heart', emoji:'💖', points:20, weight:18 }
+  ];
+  const RAINBOW_CANDY_TYPE = {
+    key:'rainbowCandy', emoji:null, points:0, css:'rainbow-candy-item'
+  };
+
+  function pickItemType(){
+    const total = ITEM_TYPES.reduce((s,t)=>s+t.weight,0);
+    let r = Math.random()*total;
+    for(const t of ITEM_TYPES){
+      if(r < t.weight) return t;
+      r -= t.weight;
+    }
+    return ITEM_TYPES[0];
+  }
+
+
+  function updateHeartGauge(){
+    const filled = Math.min(5, luckyCount);
+    heartGaugeHearts.textContent = '♥'.repeat(filled) + '♡'.repeat(5-filled);
+    heartGaugeTotal.textContent = '×' + luckyCount;
+    heartGauge.setAttribute('aria-label', `ラッキーハート ${luckyCount}こ`);
+  }
+
+  function celebrateHeartMagic(){
+    if(heartMagicAnnounced || luckyCount < 5) return;
+    heartMagicAnnounced = true;
+    heartGauge.classList.remove('magic-ready');
+    void heartGauge.offsetWidth;
+    heartGauge.classList.add('magic-ready');
+    showAnnouncement('💖 まほう！', true);
+  }
+
+  function renderPlaySummary(){
+    playSummary.innerHTML =
+      `<div class="summary-counts">`+
+      `<span class="summary-chip">⭐×${playCounts.star}</span>`+
+      `<span class="summary-chip">💧×${playCounts.drop}</span>`+
+      `<span class="summary-chip">💖×${playCounts.heart}</span>`+
+      `</div>`;
+    playSummary.classList.remove('hidden');
+  }
+
+  function clearAnnouncement(){
+    clearTimeout(announcementTimer);
+    gameAnnouncement.classList.add('hidden');
+    gameAnnouncement.classList.remove('show','small');
+    gameAnnouncement.textContent = '';
+  }
+
+  function showAnnouncement(message, small=false){
+    clearAnnouncement();
+    gameAnnouncement.textContent = message;
+    gameAnnouncement.classList.remove('hidden');
+    gameAnnouncement.classList.toggle('small', small);
+    void gameAnnouncement.offsetWidth;
+    gameAnnouncement.classList.add('show');
+    announcementTimer = setTimeout(clearAnnouncement, 1200);
+  }
+
+  function clearRainbowTrails(){
+    rainbowTrailEls.forEach(el => el.remove());
+    rainbowTrailEls.clear();
+  }
+
+  function createRainbowTrail(){
+    const now = performance.now();
+    if(lowPowerMode || !bonusActive || now - lastTrailAt < 150 || rainbowTrailEls.size >= 5) return;
+    lastTrailAt = now;
+    const trail = document.createElement('span');
+    trail.className = 'rainbow-trail';
+    trail.textContent = ['✨','⭐','✦','💫'][Math.floor(Math.random()*4)];
+    trail.style.left = ((playerX/100)*gameArea.clientWidth) + 'px';
+    trail.style.top = (gameArea.clientHeight - 44 + Math.random()*14) + 'px';
+    trail.style.color = ['#ff77ba','#ffe46e','#71e8ff','#a98cff'][Math.floor(Math.random()*4)];
+    gameArea.appendChild(trail);
+    rainbowTrailEls.add(trail);
+    setTimeout(()=>{
+      trail.remove();
+      rainbowTrailEls.delete(trail);
+    }, 700);
+  }
+
+  function updateBonusHud(){
+    if(!bonusActive) return;
+    const remainingMs = Math.max(0, bonusEndAt - Date.now());
+    const seconds = Math.max(1, Math.ceil(remainingMs / 1000));
+    bonusSecondsEl.textContent = seconds;
+    if(remainingMs <= 0 || !running){
+      stopBonus(running);
+    }
+  }
+
+  function startBonus(){
+    const wasActive = bonusActive;
+    const durationSeconds = Math.max(1, Math.min(5, timeLeft));
+    bonusActive = true;
+    bonusEndAt = Date.now() + durationSeconds * 1000;
+    rainbowCandyCollected = true;
+    player.classList.add('rainbow-bonus');
+    bonusHud.classList.remove('hidden');
+    bonusSecondsEl.textContent = durationSeconds;
+    clearInterval(bonusTimer);
+    bonusTimer = null;
+    bonusHudAccumulator = 0;
+    showAnnouncement(wasActive ? '🌈 ボーナスつづくよ！' : '🌈 にじいろボーナス！');
+  }
+
+  function stopBonus(showEndMessage=true){
+    if(!bonusActive && bonusHud.classList.contains('hidden')) return;
+    bonusActive = false;
+    bonusEndAt = 0;
+    clearInterval(bonusTimer);
+    bonusTimer = null;
+    bonusHud.classList.add('hidden');
+    player.classList.remove('rainbow-bonus');
+    clearRainbowTrails();
+    if(showEndMessage && running) showAnnouncement('ボーナスタイム おしまい！', true);
+  }
+
+  function createGuardBurst(x,y){
+    const burst = document.createElement('div');
+    burst.className = 'guard-burst';
+    burst.style.left = x + 'px';
+    burst.style.top = y + 'px';
+    const burstStars = lowPowerMode ? 3 : 6;
+    for(let i=0;i<burstStars;i++){
+      const star = document.createElement('span');
+      star.textContent = i%2 ? '✨' : '⭐';
+      star.style.setProperty('--a', (i*(360/burstStars))+'deg');
+      burst.appendChild(star);
+    }
+    gameArea.appendChild(burst);
+    transientEffects.add(burst);
+    setTimeout(()=>{ burst.remove(); transientEffects.delete(burst); }, 650);
+  }
+
+  function getUniqueCollectionCount(){
+    return PRIZES.reduce((count, prize) =>
+      count + ((collectionCounts[prize.name] || 0) > 0 ? 1 : 0), 0);
+  }
+
+
+  function isCollectionComplete(){
+    return getUniqueCollectionCount() === PRIZES.length;
+  }
+
+  function applyGrandWitchState(){
+    const complete = isCollectionComplete();
+    titleWitch.classList.toggle('grand-witch', complete);
+    player.classList.toggle('grand-witch', complete);
+    collectionCompleteBanner.classList.toggle('hidden', !complete);
+    startBtn.textContent = complete ? '大まじょで あそぶ！' : 'あそぶ！';
+  }
+
+  function showCompletionCelebration(){
+    completionOverlay.classList.remove('hidden');
+    playSound('rainbow');
+    setTimeout(()=>playSound('open'), 260);
+  }
+
+  function resetGame(){
+    clearInterval(startCountdownTimer);
+    startCountdownTimer = null;
+    countdownInProgress = false;
+    countdownOverlay.classList.add('hidden');
+    countdownText.textContent = '';
+    clearInterval(pauseResumeTimer);
+    pauseResumeTimer = null;
+    paused = false;
+    pausedBonusRemainingMs = 0;
+    pauseOverlay.classList.add('hidden');
+    gameArea.classList.remove('paused');
+    pauseBtn.disabled = true;
+    moveLeft = false; moveRight = false;
+    stopBonus(false);
+    clearAnnouncement();
+    document.body.classList.remove('game-active');
+    transientEffects.forEach(el=>el.remove()); transientEffects.clear();
+    clearRainbowTrails();
+    transientEffects.forEach(el=>el.remove());
+    transientEffects.clear();
+    lastFrameAt = 0; spawnAccumulator = 0; timerAccumulator = 0; bonusHudAccumulator = 0; slowFrameCount = 0;
+    document.body.classList.remove('game-active');
+    rainbowCandySpawnCount = 0;
+    rainbowCandyCollected = false;
+    lastTrailAt = 0;
+    playCounts = createEmptyPlayCounts();
+    heartMagicAnnounced = false;
+    score = 0; timeLeft = 60; luckyCount = 0; playerX = 50;
+    scoreValueEl.textContent = score;
+    timeValueEl.textContent = timeLeft;
+    timerBox.classList.remove('warn');
+    updateHeartGauge();
+    heartGauge.classList.remove('magic-ready');
+    playSummary.classList.add('hidden');
+    playSummary.innerHTML = '';
+    highScoreNotice.classList.add('hidden');
+    highScoreNotice.textContent = '';
+    items.forEach(it => it.el.remove());
+    items = [];
+    player.style.left = playerX+'%';
+    gachaScreen.classList.add('hidden');
+    gachaScreen.classList.remove('fade-out','fade-in','result-open');
+    gameScreen.classList.remove('hidden','fade-out','fade-in');
+    void gameScreen.offsetWidth;
+    gameScreen.classList.add('fade-in');
+    document.getElementById('leverBtn').disabled = true;
+    const capsuleReset = document.getElementById('capsule');
+    capsuleReset.classList.add('hidden');
+    capsuleReset.classList.remove('pop-in','wiggle','rainbow-capsule');
+    capsuleReset.style.transform = '';
+    capsuleReset.style.transition = '';
+    delete capsuleReset.dataset.opened;
+    capsuleOpened = false;
+    document.getElementById('popup').classList.add('hidden');
+    document.getElementById('restartBtn').classList.add('hidden');
+    document.getElementById('gacha-machine').classList.remove('shake','glow');
+    document.getElementById('machineHandle').classList.remove('turn');
+    rainbowGachaNote.classList.add('hidden');
+    luckyHeartNote.classList.add('hidden');
+    luckyHeartNote.textContent = '';
+  }
+
+  function beginGamePlay(){
+    running = true;
+    paused = false;
+    pauseBtn.disabled = false;
+    document.body.classList.add('game-active');
+    clearInterval(spawnTimer); clearInterval(countdownTimer);
+    spawnTimer = null; countdownTimer = null;
+    lastFrameAt = 0; spawnAccumulator = 0; timerAccumulator = 0; bonusHudAccumulator = 0;
+    rafId = requestAnimationFrame(gameLoop);
+  }
+
+  function animateCountdownValue(value){
+    countdownText.textContent = value;
+    countdownText.classList.remove('pop');
+    void countdownText.offsetWidth;
+    countdownText.classList.add('pop');
+  }
+
+  function pauseGame(isAutomatic=false){
+    if(!running || paused || countdownInProgress) return;
+    paused = true;
+    running = false;
+    moveLeft = false;
+    moveRight = false;
+    player.classList.remove('move-left','move-right');
+    clearInterval(spawnTimer);
+    clearInterval(countdownTimer);
+    cancelAnimationFrame(rafId);
+    spawnTimer = null;
+    countdownTimer = null;
+    rafId = null;
+
+    if(bonusActive){
+      pausedBonusRemainingMs = Math.max(0, bonusEndAt - Date.now());
+      clearInterval(bonusTimer);
+      bonusTimer = null;
+    }else{
+      pausedBonusRemainingMs = 0;
+    }
+
+    gameArea.classList.add('paused');
+    pauseOverlay.classList.remove('hidden');
+    pauseBtn.disabled = true;
+    resumeBtn.focus({preventScroll:true});
+    if(!isAutomatic) playSound('button');
+  }
+
+  function resumeGameWithCountdown(){
+    if(!paused || countdownInProgress) return;
+    pauseOverlay.classList.add('hidden');
+    countdownOverlay.classList.remove('hidden');
+    countdownInProgress = true;
+
+    let count = 3;
+    animateCountdownValue(count);
+    playSound('count');
+
+    clearInterval(pauseResumeTimer);
+    pauseResumeTimer = setInterval(()=>{
+      count--;
+      if(count > 0){
+        animateCountdownValue(count);
+        playSound('count');
+      }else if(count === 0){
+        animateCountdownValue('スタート！');
+        playSound('start');
+      }else{
+        clearInterval(pauseResumeTimer);
+        pauseResumeTimer = null;
+        countdownInProgress = false;
+        countdownOverlay.classList.add('hidden');
+        countdownText.textContent = '';
+        gameArea.classList.remove('paused');
+        paused = false;
+        running = true;
+        pauseBtn.disabled = false;
+
+        if(bonusActive && pausedBonusRemainingMs > 0){
+          bonusEndAt = Date.now() + pausedBonusRemainingMs;
+          pausedBonusRemainingMs = 0;
+          clearInterval(bonusTimer);
+          bonusTimer = null;
+          bonusHudAccumulator = 0;
+          updateBonusHud();
+        }
+
+        document.body.classList.add('game-active');
+        lastFrameAt = 0;
+        rafId = requestAnimationFrame(gameLoop);
+      }
+    }, 760);
+  }
+
+  function startGameWithCountdown(){
+    if(countdownInProgress) return;
+    resetGame();
+    running = false;
+    titleScreen.classList.add('hidden');
+    gameScreen.classList.remove('hidden','fade-out');
+    countdownOverlay.classList.remove('hidden');
+    countdownInProgress = true;
+
+    let count = 3;
+    animateCountdownValue(count);
+    playSound('count');
+
+    startCountdownTimer = setInterval(()=>{
+      count--;
+      if(count > 0){
+        animateCountdownValue(count);
+        playSound('count');
+      }else if(count === 0){
+        animateCountdownValue('スタート！');
+        playSound('start');
+      }else{
+        clearInterval(startCountdownTimer);
+        startCountdownTimer = null;
+        countdownInProgress = false;
+        countdownOverlay.classList.add('hidden');
+        countdownText.textContent = '';
+        beginGamePlay();
+      }
+    }, 760);
+  }
+
+  function startGame(){
+    resetGame();
+    beginGamePlay();
+  }
+
+  function tickTimer(){
+    timeLeft--;
+    timeValueEl.textContent = timeLeft;
+    if(timeLeft <= 10) timerBox.classList.add('warn');
+    if(timeLeft === 10) playSound('hurry');
+    if(timeLeft <= 0){
+      endGame();
+    }
+  }
+
+  function spawnItem(){
+    if(!running || items.length >= MAX_ITEMS) return;
+
+    const elapsedSeconds = 60 - timeLeft;
+    const rescueChance = (elapsedSeconds >= 25 && rainbowCandySpawnCount === 0) ? 0.085 : 0.027;
+    const canSpawnRainbow = timeLeft > 3 && rainbowCandySpawnCount < 3;
+    const type = (canSpawnRainbow && Math.random() < rescueChance)
+      ? RAINBOW_CANDY_TYPE
+      : pickItemType();
+
+    if(type.key === 'rainbowCandy') rainbowCandySpawnCount++;
+
+    const el = document.createElement('div');
+    el.className = 'item' + (type.css ? ' '+type.css : '');
+    if(type.key === 'rainbowCandy'){
+      const core = document.createElement('span');
+      core.className = 'candy-core';
+      core.textContent = '🍭';
+      el.appendChild(core);
+    }else if(type.emoji){
+      el.textContent = type.emoji;
+    }
+    if(type.key === 'spike'){
+      const badge = document.createElement('span');
+      badge.className = 'warn-badge';
+      badge.textContent = '⚠️';
+      el.appendChild(badge);
+    }
+
+    const areaWidth = gameArea.clientWidth;
+    const x = 20 + Math.random()*(areaWidth-60);
+
+    el.style.transform = `translate3d(${x}px,-52px,0)`;
+    gameArea.appendChild(el);
+
+    let vy;
+    if(type.key === 'spike') vy = 2.05 + Math.random()*.55;
+    else if(type.key === 'rainbowCandy') vy = 1.42 + Math.random()*.52;
+    else vy = 1.6 + Math.random()*1.1;
+
+    items.push({
+      el, baseX:x, x, y:-52, vy,
+      swayAmp: type.key === 'spike' ? 0 : type.key === 'rainbowCandy' ? 5+Math.random()*4 : 12+Math.random()*14,
+      swayPhase: Math.random()*Math.PI*2,
+      type
+    });
+  }
+
+  function gameLoop(now){
+    if(!running) return;
+    if(!lastFrameAt){ lastFrameAt = now; rafId = requestAnimationFrame(gameLoop); return; }
+    const rawDelta = Math.min(80, now - lastFrameAt);
+    if(rawDelta < TARGET_FRAME_MS){ rafId = requestAnimationFrame(gameLoop); return; }
+    lastFrameAt = now;
+    const dt = rawDelta / 1000;
+
+    if(rawDelta > 48) slowFrameCount++; else slowFrameCount = Math.max(0, slowFrameCount - 1);
+    if(!lowPowerMode && slowFrameCount > 24){
+      lowPowerMode = true;
+      document.body.classList.add('low-power');
+      clearRainbowTrails();
+    }
+
+    spawnAccumulator += rawDelta;
+    timerAccumulator += rawDelta;
+    bonusHudAccumulator += rawDelta;
+    while(spawnAccumulator >= 650){ spawnAccumulator -= 650; spawnItem(); }
+    while(timerAccumulator >= 1000 && running){ timerAccumulator -= 1000; tickTimer(); }
+    if(bonusActive && bonusHudAccumulator >= 250){ bonusHudAccumulator = 0; updateBonusHud(); }
+    if(!running) return;
+
+    if(moveLeft !== moveRight){ playerX += (moveRight ? 1 : -1) * playerSpeed * dt; }
+    playerX = Math.max(6, Math.min(94, playerX));
+    player.style.left = playerX+'%';
+    player.classList.toggle('move-left', moveLeft && !moveRight);
+    player.classList.toggle('move-right', moveRight && !moveLeft);
+    if(bonusActive && (moveLeft || moveRight)) createRainbowTrail();
+
+    const areaW = gameArea.clientWidth;
+    const areaH = gameArea.clientHeight;
+    const playerPxX = (playerX/100)*areaW;
+    const playerTopY = areaH - 70;
+    const swayTime = now / 260;
+
+    for(let i=items.length-1;i>=0;i--){
+      const it = items[i];
+      it.y += it.vy * 60 * dt;
+      const sway = Math.sin(swayTime + it.swayPhase) * it.swayAmp;
+      it.x = Math.max(8, Math.min(areaW - 48, it.baseX + sway));
+      it.el.style.transform = `translate3d(${it.x}px,${it.y}px,0)`;
+
+      const caught = it.y+36 >= playerTopY && it.y <= areaH-10 && Math.abs(it.x - playerPxX) < 42;
+      if(caught){
+        handleCatch(it); it.el.remove(); items.splice(i,1); continue;
+      }
+      if(it.y > areaH+20){ it.el.remove(); items.splice(i,1); }
+    }
+    rafId = requestAnimationFrame(gameLoop);
+  }
+
+  function handleCatch(it){
+    if(it.type.key === 'rainbowCandy'){
+      playCounts.rainbowCandy++;
+      playSound('rainbow');
+      startBonus();
+      const pop = document.createElement('div');
+      pop.className = 'pop-score';
+      pop.textContent = '🌈 ボーナス！';
+      pop.style.color = '#fff';
+      pop.style.left = it.x+'px';
+      pop.style.top = it.y+'px';
+      gameArea.appendChild(pop); transientEffects.add(pop);
+      setTimeout(()=>{pop.remove();transientEffects.delete(pop);}, 650);
+      return;
+    }
+
+    if(it.type.key === 'spike' && bonusActive){
+      playCounts.guard++;
+      playSound('guard');
+      createGuardBurst(it.x + 20, it.y + 20);
+      const guard = document.createElement('div');
+      guard.className = 'pop-score';
+      guard.textContent = '🛡️ まほうでガード！';
+      guard.style.color = '#fff';
+      guard.style.fontSize = '17px';
+      guard.style.left = Math.max(8,it.x-36)+'px';
+      guard.style.top = it.y+'px';
+      gameArea.appendChild(guard); transientEffects.add(guard);
+      setTimeout(()=>{guard.remove();transientEffects.delete(guard);}, 700);
+      return;
+    }
+
+    if(it.type.key === 'star') playCounts.star++;
+    if(it.type.key === 'drop') playCounts.drop++;
+    if(it.type.key === 'heart') playCounts.heart++;
+    if(it.type.key === 'spike') playCounts.spike++;
+
+    const multiplier = bonusActive && it.type.points > 0 ? 2 : 1;
+    const awardedPoints = it.type.points * multiplier;
+    score += awardedPoints;
+    if(score < 0) score = 0;
+    scoreValueEl.textContent = score;
+    if(it.type.key === 'heart'){
+      luckyCount++;
+      updateHeartGauge();
+      celebrateHeartMagic();
+      playSound('heart');
+    }else if(it.type.key === 'spike'){
+      playSound('spike');
+    }else{
+      playSound('catch');
+    }
+
+    const pop = document.createElement('div');
+    pop.className = 'pop-score';
+    pop.textContent = (awardedPoints>0?'+':'') + awardedPoints + (multiplier === 2 ? ' ×2' : '');
+    pop.style.color = awardedPoints>0 ? '#ff5fa8' : '#8a3fd6';
+    pop.style.left = it.x+'px';
+    pop.style.top = it.y+'px';
+    gameArea.appendChild(pop); transientEffects.add(pop);
+    setTimeout(()=>{pop.remove();transientEffects.delete(pop);}, 650);
+
+    // キャッチ時のプレイヤーぷにっと演出
+    if(!lowPowerMode && player.animate) player.animate([
+      { transform: player.classList.contains('move-left') ? 'translateX(-50%) rotate(-12deg) scaleX(-1) scale(1)'
+        : player.classList.contains('move-right') ? 'translateX(-50%) rotate(12deg) scale(1)'
+        : 'translateX(-50%) scale(1)' },
+      { transform: player.classList.contains('move-left') ? 'translateX(-50%) rotate(-12deg) scaleX(-1) scale(1.25)'
+        : player.classList.contains('move-right') ? 'translateX(-50%) rotate(12deg) scale(1.25)'
+        : 'translateX(-50%) scale(1.25)' },
+      { transform: player.classList.contains('move-left') ? 'translateX(-50%) rotate(-12deg) scaleX(-1) scale(1)'
+        : player.classList.contains('move-right') ? 'translateX(-50%) rotate(12deg) scale(1)'
+        : 'translateX(-50%) scale(1)' }
+    ], { duration:220, easing:'ease-out' });
+  }
+
+  function endGame(){
+    playSound('finish');
+    running = false;
+    paused = false;
+    pauseBtn.disabled = true;
+    pauseOverlay.classList.add('hidden');
+    gameArea.classList.remove('paused');
+    moveLeft = false; moveRight = false;
+    player.classList.remove('move-left','move-right');
+    clearInterval(spawnTimer);
+    clearInterval(countdownTimer);
+    cancelAnimationFrame(rafId);
+    stopBonus(false);
+    clearAnnouncement();
+    document.body.classList.remove('game-active');
+    transientEffects.forEach(el=>el.remove()); transientEffects.clear();
+
+    gameScreen.classList.add('fade-out');
+    setTimeout(()=>{
+      gameScreen.classList.add('hidden');
+      gachaScreen.classList.remove('hidden');
+      gachaScreen.classList.add('fade-in');
+      document.getElementById('final-score').textContent =
+        `⭐ ${score}てん　💖×${luckyCount}`;
+      const highScoreResult = registerHighScore(score);
+      if(highScoreResult.isNewBest){
+        highScoreNotice.textContent = '✨ ハイスコアこうしん！ ✨';
+        highScoreNotice.classList.remove('hidden');
+      }else if(highScoreResult.enteredTop3){
+        highScoreNotice.textContent = `🏆 ベスト${highScoreResult.rank}にはいったよ！`;
+        highScoreNotice.classList.remove('hidden');
+      }
+      renderPlaySummary();
+      savePreviousPlayResult({
+        score, luckyCount, counts:{...playCounts},
+        playedAt:new Date().toISOString()
+      });
+      startGachaSequence();
+    }, 650);
+  }
+
+  /* ---------- ガチャ演出 ---------- */
+  function startGachaSequence(){
+    gachaScreen.classList.remove('result-open');
+    const machineWrap = document.getElementById('machine-wrap');
+    const machine = document.getElementById('gacha-machine');
+    const leverBtn = document.getElementById('leverBtn');
+    leverBtn.disabled = true;
+    rainbowGachaNote.classList.toggle('hidden', !rainbowCandyCollected);
+
+    if(luckyCount >= 8){
+      luckyHeartNote.textContent = '💖 はじめてが とっても でやすい！';
+      luckyHeartNote.classList.remove('hidden');
+    }else if(luckyCount >= 5){
+      luckyHeartNote.textContent = '💖 はじめてが でやすい！';
+      luckyHeartNote.classList.remove('hidden');
+    }else{
+      luckyHeartNote.textContent = '';
+      luckyHeartNote.classList.add('hidden');
+    }
+
+    const count = Math.max(luckyCount, 0);
+    if(count === 0){
+      leverBtn.disabled = false;
+      return;
+    }
+
+    for(let i=0;i<count;i++){
+      setTimeout(()=>{
+        const heart = document.createElement('div');
+        heart.className = 'flying-heart';
+        heart.textContent = '💖';
+        const startX = 30 + Math.random()*(machineWrap.clientWidth-60);
+        heart.style.left = startX+'px';
+        heart.style.top = '0px';
+        machineWrap.appendChild(heart);
+
+        const machineRect = machine.getBoundingClientRect();
+        const wrapRect = machineWrap.getBoundingClientRect();
+        const targetX = (machineRect.left + machineRect.width/2) - wrapRect.left - 12;
+        const targetY = (machineRect.top + machineRect.height*0.28) - wrapRect.top;
+
+        heart.animate([
+          { transform:`translate(0px,0px) scale(1)`, opacity:1 },
+          { transform:`translate(${targetX-startX}px, ${targetY}px) scale(.3)`, opacity:.2 }
+        ], { duration:450, easing:'cubic-bezier(.4,0,.7,1)' }).onfinish = () => {
+          heart.remove();
+          machine.animate([
+            { transform:'scale(1)' }, { transform:'scale(1.04)' }, { transform:'scale(1)' }
+          ], { duration:200 });
+        };
+      }, i*300);
+    }
+
+    setTimeout(()=>{
+      leverBtn.disabled = false;
+    }, count*300 + 500);
+  }
+
+  const leverBtn = document.getElementById('leverBtn');
+  leverBtn.addEventListener('click', () => {
+    if(leverBtn.disabled) return;
+    leverBtn.disabled = true;
+    playSound('gacha');
+    const machine = document.getElementById('gacha-machine');
+    const handle = document.getElementById('machineHandle');
+    machine.classList.remove('shake');
+    handle.classList.remove('turn');
+    void machine.offsetWidth;
+    machine.classList.add('shake','glow');
+    handle.classList.add('turn');
+
+    setTimeout(()=>{
+      const capsule = document.getElementById('capsule');
+      capsule.classList.toggle('rainbow-capsule', rainbowCandyCollected);
+      capsule.classList.remove('hidden');
+      capsule.classList.add('pop-in');
+      setTimeout(()=>{
+        capsule.classList.remove('pop-in');
+        capsule.classList.add('wiggle');
+      }, 900);
+    }, 500);
+  });
+
+  const PRIZES = [
+    { icon:'👗', name:'かわいいおようふく', category:'おしゃれ' },
+    { icon:'🪄', name:'まほうのステッキ', category:'まほう' },
+    { icon:'🎀', name:'キラキラリボン', category:'おしゃれ' },
+    { icon:'👠', name:'まほうのくつ', category:'おしゃれ' },
+    { icon:'👑', name:'ほしのティアラ', category:'おしゃれ' },
+    { icon:'🍭', name:'あまいキャンディ', category:'たべもの' },
+    { icon:'🧸', name:'ちいさなくまさん', category:'どうぶつ' },
+    { icon:'🎈', name:'ふわふわふうせん', category:'そら・ふしぎ' },
+    { icon:'🦄', name:'にじいろユニコーン', category:'まほう' },
+    { icon:'🌈', name:'まほうのにじ', category:'まほう' },
+    { icon:'🍓', name:'あまいいちご', category:'たべもの' },
+    { icon:'🐰', name:'ぴょんぴょんうさぎ', category:'どうぶつ' },
+    { icon:'🐱', name:'ふわふわねこ', category:'どうぶつ' },
+    { icon:'🦋', name:'きらきらちょうちょ', category:'どうぶつ' },
+    { icon:'🧁', name:'まほうのカップケーキ', category:'たべもの' },
+    { icon:'💎', name:'にじいろほうせき', category:'まほう' },
+    { icon:'🐣', name:'ちいさなひよこ', category:'どうぶつ' },
+    { icon:'🌙', name:'おつきさまチャーム', category:'そら・ふしぎ' },
+    { icon:'🫧', name:'ゆめいろしゃぼんだま', category:'そら・ふしぎ' },
+    { icon:'🐬', name:'おほしさまイルカ', category:'そら・ふしぎ' }
+  ];
+
+  function updateCollectionBadge(){
+    const total = Object.values(collectionCounts).reduce((s,n)=>s+n,0);
+    const badge = document.getElementById('collectionBadge');
+    badge.textContent = total;
+    badge.classList.toggle('hidden', total <= 0);
+  }
+
+  function renderCollectionGrid(){
+    const grid = document.getElementById('collectionGrid');
+    grid.innerHTML = '';
+    const categories = ['どうぶつ','おしゃれ','たべもの','まほう','そら・ふしぎ'];
+    categories.forEach(category => {
+      const prizes = PRIZES.filter(prize => prize.category === category);
+      const owned = prizes.filter(prize => (collectionCounts[prize.name] || 0) > 0).length;
+
+      const section = document.createElement('section');
+      section.className = 'collection-category';
+
+      const title = document.createElement('div');
+      title.className = 'collection-category-title' + (owned === prizes.length ? ' complete' : '');
+      title.innerHTML = `<span>${owned === prizes.length ? '⭐ ' : ''}${category}</span><span>${owned}/${prizes.length}</span>`;
+      section.appendChild(title);
+
+      const categoryGrid = document.createElement('div');
+      categoryGrid.className = 'collection-grid';
+      prizes.forEach(prize => {
+        const count = collectionCounts[prize.name] || 0;
+        const card = document.createElement('div');
+        card.className = 'collection-card' + (count === 0 ? ' locked' : '');
+        card.innerHTML =
+          `<span class="icon">${count > 0 ? prize.icon : '❓'}</span>` +
+          `<span>${count > 0 ? prize.name : 'ひみつ'}</span>` +
+          (count > 0 ? `<span class="count">×${count}</span>` : '');
+        categoryGrid.appendChild(card);
+      });
+      section.appendChild(categoryGrid);
+      grid.appendChild(section);
+    });
+  }
+
+  document.getElementById('collectionBtn').addEventListener('click', () => {
+    applyGrandWitchState();
+    renderCollectionGrid();
+    document.getElementById('collectionModal').classList.remove('hidden');
+  });
+  document.getElementById('closeCollectionBtn').addEventListener('click', () => {
+    document.getElementById('collectionModal').classList.add('hidden');
+  });
+  document.getElementById('resetCollectionBtn').addEventListener('click', () => {
+    if(confirm('コレクションをぜんぶリセットしますか？あとでもどせません。')){
+      collectionCounts = {};
+      saveCollection();
+      try{ localStorage.removeItem(COMPLETION_STORAGE_KEY); }catch(_err){}
+      applyGrandWitchState();
+      renderHighScores();
+      updateCollectionBadge();
+      renderCollectionGrid();
+      document.getElementById('collectionBadge').classList.add('hidden');
+    }
+  });
+
+  function getUnownedPrizes(){
+    return PRIZES.filter(prize => (collectionCounts[prize.name] || 0) <= 0);
+  }
+
+  function pickGachaPrize(){
+    let unownedPriority = 0;
+    if(luckyCount >= 8) unownedPriority = 0.80;
+    else if(luckyCount >= 5) unownedPriority = 0.60;
+
+    const unownedPrizes = getUnownedPrizes();
+    if(unownedPriority > 0 && unownedPrizes.length > 0 && Math.random() < unownedPriority){
+      return unownedPrizes[Math.floor(Math.random() * unownedPrizes.length)];
+    }
+    return PRIZES[Math.floor(Math.random() * PRIZES.length)];
+  }
+
+  function openCapsule(el){
+    if(capsuleOpened) return;
+    capsuleOpened = true;
+    playSound('open');
+    el.dataset.opened = '1';
+    el.classList.remove('wiggle');
+    el.style.transform = 'translateX(-50%) scale(1.3) rotate(15deg)';
+    el.style.transition = 'transform .25s ease';
+
+    const prize = pickGachaPrize();
+    const wasComplete = isCollectionComplete();
+    const previousCount = collectionCounts[prize.name] || 0;
+    const isFirst = previousCount === 0;
+    const newCount = previousCount + 1;
+    collectionCounts[prize.name] = newCount;
+    saveCollection();
+    updateCollectionBadge();
+    applyGrandWitchState();
+    renderHighScores();
+    const justCompleted = !wasComplete && isCollectionComplete();
+
+    const popup = document.getElementById('popup');
+    if(isFirst){
+      popup.innerHTML =
+        `<span class="first-get">✨ はじめて！ ✨</span>` +
+        `🎉 ${prize.icon} ${prize.name} を てにいれたよ！`;
+    }else{
+      popup.innerHTML =
+        `🎉 ${prize.icon} ${prize.name} を てにいれたよ！<br>` +
+        `これで ×${newCount}`;
+    }
+    setTimeout(()=>{
+      gachaScreen.classList.add('result-open');
+      popup.classList.remove('hidden');
+      document.getElementById('restartBtn').classList.remove('hidden');
+      if(justCompleted){
+        try{ localStorage.setItem(COMPLETION_STORAGE_KEY, '1'); }catch(_err){}
+        setTimeout(showCompletionCelebration, 650);
+      }
+    }, 240);
+
+    // 今後の段階解放に利用できるよう、所持種類数をここで取得可能
+    console.info('コレクション所持種類数:', getUniqueCollectionCount());
+  }
+
+  const capsuleEl = document.getElementById('capsule');
+  // クリックとタッチの両方に対応（スマホでタップが反応しないことがあるための対策）
+  capsuleEl.addEventListener('click', function(){ openCapsule(this); });
+  capsuleEl.addEventListener('touchend', function(e){
+    e.preventDefault(); // タッチ後に発生する重複clickを防止
+    openCapsule(this);
+  }, {passive:false});
+
+  completionCloseBtn.addEventListener('click', ()=>{
+    playSound('button');
+    completionOverlay.classList.add('hidden');
+    renderCollectionGrid();
+  });
+
+  document.getElementById('restartBtn').addEventListener('click', ()=>{ playSound('button'); startGameWithCountdown(); });
+
+  /* ---------- 操作: キーボード ---------- */
+  window.addEventListener('keydown', (e)=>{
+    if(e.key === 'ArrowLeft' || e.key === 'ArrowRight') e.preventDefault();
+    if(e.key === 'ArrowLeft') moveLeft = true;
+    if(e.key === 'ArrowRight') moveRight = true;
+  }, {passive:false});
+  window.addEventListener('keyup', (e)=>{
+    if(e.key === 'ArrowLeft') moveLeft = false;
+    if(e.key === 'ArrowRight') moveRight = false;
+  });
+
+  /* ---------- 操作: 画面タップ（左半分＝左、右半分＝右） ---------- */
+  function bindZone(zoneEl, setter){
+    let activePointerId = null;
+    const start = (e) => {
+      if(!running || activePointerId !== null) return;
+      e.preventDefault();
+      activePointerId = e.pointerId;
+      try{ zoneEl.setPointerCapture(e.pointerId); }catch(_err){}
+      setter(true);
+      zoneEl.classList.add('active');
+    };
+    const end = (e) => {
+      if(activePointerId !== null && e && e.pointerId !== activePointerId) return;
+      setter(false);
+      zoneEl.classList.remove('active');
+      if(activePointerId !== null){
+        try{ zoneEl.releasePointerCapture(activePointerId); }catch(_err){}
+      }
+      activePointerId = null;
+    };
+    zoneEl.addEventListener('pointerdown', start, {passive:false});
+    zoneEl.addEventListener('pointerup', end);
+    zoneEl.addEventListener('pointercancel', end);
+    zoneEl.addEventListener('lostpointercapture', end);
+    zoneEl.addEventListener('contextmenu', e => e.preventDefault());
+    zoneEl.addEventListener('dragstart', e => e.preventDefault());
+  }
+  bindZone(zoneLeft, v => moveLeft = v);
+  bindZone(zoneRight, v => moveRight = v);
+
+
+  window.addEventListener('resize', ()=>{
+    if(items.length){ items.forEach(it=>it.baseX=Math.max(20,Math.min(gameArea.clientWidth-60,it.baseX))); }
+  }, {passive:true});
+  window.addEventListener('pointerup', ()=>{ moveLeft=false; moveRight=false; }, {passive:true});
+  window.addEventListener('pointercancel', ()=>{ moveLeft=false; moveRight=false; }, {passive:true});
+
+  /* ---------- スタート ---------- */
+  loadCollection();
+  loadPreviousPlayResult();
+  loadHighScores();
+  updateCollectionBadge();
+  applyGrandWitchState();
+  renderHighScores();
+  updateHeartGauge();
+  gameScreen.classList.add('hidden');
+  gachaScreen.classList.add('hidden');
+  titleScreen.classList.remove('hidden');
+
+  pauseBtn.addEventListener('click', ()=>pauseGame(false));
+  resumeBtn.addEventListener('click', ()=>{
+    ensureAudio();
+    playSound('button');
+    resumeGameWithCountdown();
+  });
+
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden && running && !paused && !countdownInProgress){
+      pauseGame(true);
+    }
+  });
+
+  window.addEventListener('blur', ()=>{
+    if(running && !paused && !countdownInProgress){
+      pauseGame(true);
+    }
+  });
+
+  startBtn.addEventListener('click', ()=>{
+    ensureAudio();
+    playSound('button');
+    startGameWithCountdown();
+  });
+
+})();
+</script>
+</body>
+</html>
